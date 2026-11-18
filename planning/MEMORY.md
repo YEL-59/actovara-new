@@ -57,3 +57,7 @@ PROJECT_STATUS.md এবং planning/MEMORY.md (চেকপয়েন্ট: 
 - **Backend**: `backend/` is a NestJS + Prisma stub. Scaffold per ADR-003 after the Backend Pre-Execution Gate.
 - **Client inputs**: `inputs/client_docs/` (PDF, DOCX briefs, Telegram chat, Jannatul reply 16-11).
 - Pre-migration backup: `C:\Users\Tofayel\Desktop\actovara-new_BACKUP_before_easytemplate_v2`.
+
+## Fix (2026-11-18): Sidebar detached when a modal/drawer opens
+- Cause: `useFocusTrap` set `body { overflow: hidden }`; with `html { overflow-x: clip }` the body became its own scroll container, so the sticky sidebar jumped to its unscrolled position (looked cut off on scrolled pages, e.g. /actions/act_011 "Upload evidence").
+- Fix: scroll lock moved to `<html>` with scrollbar-width padding compensation in `frontend/src/lib/hooks/useFocusTrap.ts`.

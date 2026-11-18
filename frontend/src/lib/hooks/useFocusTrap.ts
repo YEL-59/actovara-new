@@ -23,8 +23,15 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onClose: ()
     const autofocus = node?.querySelector<HTMLElement>('[data-autofocus]');
     (autofocus ?? items()[0] ?? node)?.focus();
 
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    // Lock scroll on <html>, not <body>: `html { overflow-x: clip }` stops body overflow from
+    // propagating to the viewport, which would turn <body> into a scroll container and
+    // detach the sticky sidebar from the window scroll position.
+    const root = document.documentElement;
+    const prevOverflow = root.style.overflow;
+    const prevPadding = root.style.paddingRight;
+    const scrollbar = window.innerWidth - root.clientWidth;
+    root.style.overflow = 'hidden';
+    if (scrollbar > 0) root.style.paddingRight = `${scrollbar}px`;
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -52,7 +59,8 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean, onClose: ()
 
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      root.style.overflow = prevOverflow;
+      root.style.paddingRight = prevPadding;
       previous?.focus?.();
     };
   }, [active]);
