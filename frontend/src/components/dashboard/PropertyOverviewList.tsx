@@ -25,7 +25,7 @@ export function PropertyOverviewList({ properties }: { properties: Property[] })
       <TBody>
         {properties.map((p) => {
           const certs = p.counts?.certificates ?? 0;
-          const overdue = p.counts?.overdue ?? 0;
+          const totalOverdue = (p.counts?.overdue ?? 0) + (p.counts?.overdueActions ?? 0);
           const openActions = p.counts?.openActions ?? 0;
           return (
             <TR key={p._id} interactive>
@@ -54,8 +54,8 @@ export function PropertyOverviewList({ properties }: { properties: Property[] })
               </TD>
               <TD className="text-right font-semibold tabular-nums">{certs}</TD>
               <TD className="text-right">
-                <span className={overdue > 0 ? 'font-bold tabular-nums text-danger-700' : 'tabular-nums text-ink-muted'}>
-                  {overdue}
+                <span className={totalOverdue > 0 ? 'font-bold tabular-nums text-danger-700' : 'tabular-nums text-ink-muted'}>
+                  {totalOverdue}
                 </span>
               </TD>
               <TD className="text-right">

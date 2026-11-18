@@ -28,7 +28,7 @@ export function KpiRow({ kpis, propertyId }: KpiRowProps) {
       href: `/certificates?status=valid${qs}`,
     },
     {
-      label: 'Overdue Items',
+      label: 'Overdue (Certs & Actions)',
       value: kpis.overdueItems,
       icon: <TriangleAlert />,
       tone: 'danger' as const,

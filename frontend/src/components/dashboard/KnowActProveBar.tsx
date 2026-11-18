@@ -14,9 +14,8 @@ export function KnowActProveBar({ data, propertyId }: KnowActProveBarProps) {
   const qs = propertyId ? `&propertyId=${encodeURIComponent(propertyId)}` : '';
   const propQs = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : '';
 
-  const overdueOrMissingCerts = data.urgentRequirements.filter(
-    (r) => r.status === 'overdue' || r.status === 'missing',
-  ).length;
+  const overdueCerts = data.urgentRequirements.filter((r) => r.status === 'overdue').length;
+  const missingCerts = data.urgentRequirements.filter((r) => r.status === 'missing').length;
   const dueSoonCerts = data.urgentRequirements.filter((r) => r.status === 'due_soon').length;
 
   const urgentOrOverdueActions = data.openActions.filter(
@@ -26,19 +25,20 @@ export function KnowActProveBar({ data, propertyId }: KnowActProveBarProps) {
     (a) => a.status === 'awaiting_verification',
   ).length;
 
+  const knowParts = [
+    overdueCerts > 0 ? `${overdueCerts} overdue` : null,
+    missingCerts > 0 ? `${missingCerts} missing` : null,
+    dueSoonCerts > 0 ? `${dueSoonCerts} due soon` : null,
+  ].filter(Boolean);
+
   const pillars = [
     {
       step: 'KNOW',
       title: 'What needs attention',
       icon: Eye,
-      accent: overdueOrMissingCerts > 0 ? 'border-l-danger-600' : dueSoonCerts > 0 ? 'border-l-warn-600' : 'border-l-ok-600',
-      badgeClass: overdueOrMissingCerts > 0 ? 'bg-danger-100 text-danger-700' : 'bg-brand-50 text-brand-700',
-      summary:
-        overdueOrMissingCerts > 0
-          ? `${overdueOrMissingCerts} overdue or missing · ${dueSoonCerts} due soon`
-          : dueSoonCerts > 0
-            ? `${dueSoonCerts} certificate${dueSoonCerts === 1 ? '' : 's'} due soon`
-            : 'All tracked certificates in date',
+      accent: overdueCerts + missingCerts > 0 ? 'border-l-danger-600' : dueSoonCerts > 0 ? 'border-l-warn-600' : 'border-l-ok-600',
+      badgeClass: overdueCerts + missingCerts > 0 ? 'bg-danger-100 text-danger-700' : 'bg-brand-50 text-brand-700',
+      summary: knowParts.length > 0 ? knowParts.join(' · ') : 'All tracked certificates in date',
       detail: 'Missing certificates, upcoming expiries, and identified property risks.',
       href: `/certificates?status=overdue${qs}`,
       cta: 'Review certificates',

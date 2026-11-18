@@ -57,6 +57,8 @@ export function recompute(db: MockDb, now: Date = new Date()): MockDb {
       dueSoon,
       missing,
       openActions,
+      overdueActions,
+      urgentActions,
     };
     const next = reqs
       .filter((r) => r.nextDueDate && (r.status === 'valid' || r.status === 'due_soon' || r.status === 'overdue'))

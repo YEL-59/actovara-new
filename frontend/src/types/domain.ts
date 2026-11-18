@@ -27,7 +27,15 @@ export interface Property {
   coverImageUrl?: string;
   status: 'active' | 'archived';
   ragStatus: Rag;
-  counts?: { certificates: number; overdue: number; dueSoon: number; missing: number; openActions: number };
+  counts?: {
+    certificates: number;
+    overdue: number;
+    dueSoon: number;
+    missing: number;
+    openActions: number;
+    overdueActions?: number;
+    urgentActions?: number;
+  };
   nextDue?: { date: string; complianceTypeName: string };
   createdAt: string;
   updatedAt: string;

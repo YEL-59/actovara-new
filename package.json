@@ -14,6 +14,7 @@
     "audit-assets": "powershell -ExecutionPolicy Bypass -File scripts/audit-assets.ps1",
     "inputs": "node scripts/parse-inputs.js",
     "parse-inputs": "node scripts/parse-inputs.js",
+    "sync-telegram": "node scripts/sync-telegram.js",
     "reply": "node scripts/client-reply.js",
     "comms": "node scripts/client-reply.js",
     "settings": "node scripts/settings.js",

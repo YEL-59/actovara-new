@@ -176,6 +176,10 @@ export default function DashboardPage() {
             <UrgentRequirementsTable requirements={data.urgentRequirements} propertyId={propertyId || undefined} />
             <OpenActionsPanel actions={data.openActions} propertyId={propertyId || undefined} />
           </section>
+
+          <p className="text-center text-xs text-ink-muted">
+            Operational document and corrective-action tracking only — status indicators do not constitute legal or statutory certification.
+          </p>
         </>
       )}
     </div>

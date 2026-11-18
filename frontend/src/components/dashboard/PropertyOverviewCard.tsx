@@ -15,7 +15,9 @@ const ragAccent: Record<Rag, string> = {
 
 export function PropertyOverviewCard({ property }: { property: Property }) {
   const certs = property.counts?.certificates ?? 0;
-  const overdue = property.counts?.overdue ?? 0;
+  const overdueCerts = property.counts?.overdue ?? 0;
+  const overdueActions = property.counts?.overdueActions ?? 0;
+  const totalOverdue = overdueCerts + overdueActions;
   const openActions = property.counts?.openActions ?? 0;
   const typeLabel = propertyTypeMeta[property.type].label;
 
@@ -56,12 +58,12 @@ export function PropertyOverviewCard({ property }: { property: Property }) {
           <span className="text-ink-muted">Certificates</span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-ink">
+        <div className="flex items-center gap-1.5 text-ink" title={`${overdueCerts} overdue certificates, ${overdueActions} overdue actions`}>
           <TriangleAlert
-            className={cn('h-4 w-4 shrink-0', overdue > 0 ? 'text-danger-600' : 'text-ink-muted')}
+            className={cn('h-4 w-4 shrink-0', totalOverdue > 0 ? 'text-danger-600' : 'text-ink-muted')}
             aria-hidden
           />
-          <span className={cn('font-bold tabular-nums', overdue > 0 && 'text-danger-700')}>{overdue}</span>
+          <span className={cn('font-bold tabular-nums', totalOverdue > 0 && 'text-danger-700')}>{totalOverdue}</span>
           <span className="text-ink-muted">Overdue</span>
         </div>
 

@@ -12,12 +12,12 @@
 
 | Task ID | Task Title | Domain | Dependencies | Status | Priority | Verification |
 |---|---|---|---|---|---|---|
-| [`TASK-001`](tasks/TASK-001.md) | Client Intake, Figma/Screenshot Analysis & Architecture Blueprint | Planning | None | `READY` | `P0` | Pending `npm run inputs` & Developer Approval |
-| [`TASK-004`](tasks/TASK-004.md) | Frontend Design Tokens, Navbar & Layout (100% Figma/Screenshot Clone) | Frontend | `TASK-001` | `BACKLOG` | `P0` | Pending |
-| [`TASK-002`](tasks/TASK-002.md) | Universal Database Schemas & ERD Models (Any Backend) | Backend | `TASK-001` | `BACKLOG` | `P0` | Pending |
-| [`TASK-003`](tasks/TASK-003.md) | Modular Backend API Routes, Controllers & Validation | Backend | `TASK-002` | `BACKLOG` | `P0` | Pending |
-| [`TASK-005`](tasks/TASK-005.md) | Frontend Feature Views, 6-State UI & API Integration | Full-Stack | `TASK-003`, `TASK-004` | `BACKLOG` | `P0` | Pending |
-| [`TASK-006`](tasks/TASK-006.md) | Full Platform Verification & Build Audit | QA | `TASK-005` | `BACKLOG` | `P0` | Pending |
+| [`TASK-004`](tasks/TASK-004.md) | Actovara Frontend MVP, Brand Logo, Know/Act/Prove, RAG & Photo Upload | Frontend | None | `DONE` | `P0` | `npx tsc --noEmit` & `npm run build` passed |
+| [`TASK-001`](tasks/TASK-001.md) | Client Intake (`Jannatul Reply - 16-11.pdf`), PostgreSQL ERD & API Contract Gate | Planning | None | `READY` | `P0` | `npm run inputs` done; pending ERD/API Gate |
+| [`TASK-002`](tasks/TASK-002.md) | PostgreSQL + Prisma Database Schemas & Multi-Org Isolation (`NESTJS_PRISMA_POSTGRES`) | Backend | `TASK-001` | `BACKLOG` | `P0` | Pending |
+| [`TASK-003`](tasks/TASK-003.md) | NestJS Modular REST APIs, RBAC, PDF Reports & Audit Trail | Backend | `TASK-002` | `BACKLOG` | `P0` | Pending |
+| [`TASK-005`](tasks/TASK-005.md) | Frontend Live API Integration (`NEXT_PUBLIC_USE_MOCKS=false`) & 6-State QA | Full-Stack | `TASK-003`, `TASK-004` | `BACKLOG` | `P0` | Pending |
+| [`TASK-006`](tasks/TASK-006.md) | Full Platform Verification, Contract Validation & Handover Audit | QA | `TASK-005` | `BACKLOG` | `P0` | Pending |
 
 ---
 

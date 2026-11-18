@@ -34,3 +34,4 @@ inputs/client_docs/*.pdf
 inputs/client_docs/*.docx
 inputs/client_docs/*.doc
 inputs/client_docs/requirements.md
+inputs/client_docs/.telegram-state.json
