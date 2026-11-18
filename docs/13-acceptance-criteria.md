@@ -1,23 +1,15 @@
-# 13 — Feature Acceptance Criteria
+# 13 — Acceptance Criteria & Definition of Done (`docs/13-acceptance-criteria.md`)
 
-> Owned and verified by `thanos`.
+A task or project is ready for client handover only when all of the following are verified:
 
----
-
-## 1. Global Baseline Acceptance Checklist
-Every completed feature must meet:
-- [ ] TypeScript strict compilation without errors.
-- [ ] No ESLint / linter warnings or errors.
-- [ ] Unit and integration tests passed with evidence.
-- [ ] Responsive UI verified on mobile (<640px) and desktop (>1024px).
-- [ ] No unhandled Promise rejections or runtime console errors.
-
----
-
-## 2. Feature Specific Criteria Matrix
-| Feature ID | Feature Name | Acceptance Condition | Verification Method |
-|---|---|---|---|
-| `AC-AUTH-01` | User Login | Valid credentials return JWT; user redirected to `/dashboard` | E2E Playwright test |
-| `AC-AUTH-02` | Invalid Login | Invalid credentials display inline error "Invalid email or password" | Component / Unit test |
-| `AC-AUTH-03` | Protected Route | Unauthenticated visit to `/dashboard` redirects to `/login` | Next.js middleware test |
-| `AC-DATA-01` | Data Fetching | Data fetching displays skeleton loader, then data, or empty state | Visual & React Testing Lib |
+1. **Figma / Screenshot Visual Fidelity**:
+   - Colors, typography, spacing, border radius, and layouts match `inputs/figma/` or `inputs/screenshots/`.
+   - Zero placeholder gray boxes or broken image links; all assets are in semantic `frontend/public/images/*` folders.
+2. **6 Mandatory UI States**:
+   - Default/Success, Loading Skeleton, Empty State, Validation/Error, Responsive (`<640px`, `640-1024px`, `>1024px`), and Interactive/Focus states are implemented.
+3. **Backend & API Contract Integrity**:
+   - All endpoints adhere to `docs/08-api-contract.md` and the `sendResponse` envelope.
+   - `npm run validate-contracts` passes with 0 issues.
+4. **Zero Build Errors & Synced Memory**:
+   - `npm run build` passes in both `backend/` and `frontend/`.
+   - `PROJECT_STATUS.md` and `planning/MEMORY.md` are updated with the latest checkpoint.

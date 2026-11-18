@@ -1,61 +1,34 @@
-# TASK-005: Build Frontend Foundation & Design System
+# TASK-005: Frontend Feature Views & API Integration
 
-> **Status**: `BACKLOG`  
-> **Assignee**: `friday` (Web Frontend Specialist)  
-> **Priority**: `P1` (High)  
-> **Dependencies**: `TASK-002`  
-> **Master Board**: [planning/task.md](../task.md)
-
----
-
-## 1. Objective & User Story
-As Web Frontend Specialist (`friday`), set up Next.js App Router root layout, theme provider, global styles with Tailwind CSS, base typography, and reusable UI component primitives (Button, Input, Card, Modal, Skeleton).
+- **Task ID**: `TASK-005`
+- **Domain**: Frontend / Integration
+- **Status**: `BACKLOG`
+- **Priority**: `P0`
+- **Assigned Role**: Full-Stack Developer
+- **Dependencies**: `TASK-003`, `TASK-004`
 
 ---
 
-## 2. Inputs & Context Documents
-- **Design Guidelines**: [development/frontend/DESIGN_GUIDELINES.md](../../development/frontend/DESIGN_GUIDELINES.md)
-- **Frontend App Config**: [development/frontend/package.json](../../development/frontend/package.json)
-- **Skill Instructions**: [.agents/skills/frontend-development/SKILL.md](../../.agents/skills/frontend-development/SKILL.md)
+## 1. Objective
+Build the client-requested feature pages and integrate them with the backend Express API using `frontend/src/services/api.ts` or custom hooks.
 
 ---
 
-## 3. Step-by-Step Execution Plan
-1. Scaffold root Next.js files in `development/frontend/src/app/` (`layout.tsx`, `page.tsx`, `globals.css`).
-2. Integrate design tokens from Jarvis (`DESIGN_GUIDELINES.md`) into Tailwind config and CSS root variables.
-3. Build base primitive UI components in `development/frontend/src/components/ui/`:
-   - `Button.tsx` (variants: primary, secondary, outline, ghost, destructive; with loading spinner state)
-   - `Input.tsx` (with error border, label, helper text, and accessible focus ring)
-   - `Card.tsx`
-   - `Skeleton.tsx` (for loading placeholder states)
-   - `Alert.tsx` (for success and error messages)
-4. Verify typography rendering, dark mode toggling, and keyboard navigation.
+## 2. Deliverables
+1. Page routes in `frontend/src/app/...`.
+2. Semantic visual assets in `frontend/public/images/*`.
+3. 6 Mandatory UI States implemented on interactive components:
+   - (1) Default / Success
+   - (2) Loading Skeleton (`<SkeletonProductCard />`, `<SkeletonTableRow />`)
+   - (3) Empty State (`<EmptyState />`)
+   - (4) Validation / Error Alert (`<Input error="..." />`, `<Alert variant="danger" />`)
+   - (5) Responsive Breakpoints (`<640px`, `640px-1024px`, `>1024px`)
+   - (6) Interactive / Hover / Focus states (`focus-visible:ring-2`)
+4. Reactive form handling and API mutation feedback (`frontend/src/services/api.ts`).
 
 ---
 
-## 4. Expected Outputs
-- `src/app/layout.tsx` and `src/app/globals.css`.
-- Core UI component primitives in `src/components/ui/`.
-- Zero TypeScript and ESLint warnings.
-
----
-
-## 5. Acceptance Criteria
-- [ ] Root layout compiles without errors on `npm run build` or `npm run dev`.
-- [ ] Primitive components implement all 6 UI states where applicable.
-- [ ] Keyboard navigation and accessibility focus rings are verified.
-- [ ] Dark mode toggle works cleanly without hydration mismatch.
-
----
-
-## 6. Verification Evidence (Thanos)
-- **Command**: `cd development/frontend && npm run type-check && npm run lint`
-- **Status**: `Pending Verification`
-- **Output Log**: Awaiting execution.
-
----
-
-## 7. Fresh Session Handoff
-```markdown
-planning/updateplanning.md পড়ে TASK-006 শুরু করো।
-```
+## 3. Acceptance & Verification Criteria
+- [ ] Forms submit correct JSON payloads to the backend API and surface HTTP `4xx/5xx` errors clearly.
+- [ ] UI states (loading, empty, error) display correctly without blank screens.
+- [ ] Project & Contract validation suites (`npm run validate` & `npm run validate-contracts`) pass with 0 errors.

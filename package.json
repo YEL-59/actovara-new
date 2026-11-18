@@ -1,0 +1,27 @@
+{
+  "name": "easytemplate-root",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue.bold,magenta.bold\" \"npm run start:dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "test": "npm test --prefix backend",
+    "new-project": "node scripts/new-project.js",
+    "reset": "node scripts/new-project.js",
+    "validate": "powershell -ExecutionPolicy Bypass -File scripts/validate-project.ps1",
+    "validate-contracts": "powershell -ExecutionPolicy Bypass -File scripts/validate-contracts.ps1",
+    "check-task": "powershell -ExecutionPolicy Bypass -File scripts/check-task.ps1",
+    "audit-assets": "powershell -ExecutionPolicy Bypass -File scripts/audit-assets.ps1",
+    "inputs": "node scripts/parse-inputs.js",
+    "parse-inputs": "node scripts/parse-inputs.js",
+    "reply": "node scripts/client-reply.js",
+    "comms": "node scripts/client-reply.js",
+    "settings": "node scripts/settings.js",
+    "sync": "node scripts/sync.js",
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "lint": "npm run lint --prefix backend && npm run lint --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  }
+}

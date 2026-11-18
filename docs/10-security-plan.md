@@ -1,24 +1,13 @@
-# 10 — Security Plan & Hardening
+# 10 — Security & Validation Plan (`docs/10-security-plan.md`)
 
-> Owned and maintained by `ultron` and `edith`.
+## 1. Authentication & Authorization
+- **JWT Verification**: Verify tokens via `requireAuth` guard (`backend/src/common/guards/auth.guard.ts`).
+- **Role-Based Access Control (RBAC)**: Restrict administrative mutations (`POST`, `PATCH`, `DELETE`) to authorized roles (`admin`, `superadmin`, etc.).
 
----
+## 2. Input Validation & Sanitization
+- Validate all incoming payloads using `validateRequest` (`backend/src/common/pipes/validateRequest.ts`) with Zod/Joi or DTO `class-validator` before hitting services.
+- Never expose raw database stack traces or sensitive fields (`password`, `passwordHash`) in API responses.
 
-## 1. Authentication & Session Security
-- Passwords hashed using `bcrypt` (salt rounds >= 10) or `argon2`.
-- JWT access tokens with short TTL (15 minutes).
-- Refresh tokens stored in HTTP-only, Secure, SameSite=Strict cookies.
-
----
-
-## 2. API & Network Protection
-- **Rate Limiting**: Throttler in NestJS & Nginx limit (e.g., max 10 requests/minute on `/auth/*`).
-- **CORS Policy**: Restrict `Access-Control-Allow-Origin` to verified frontend domains.
-- **Input Sanitization**: Global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })`.
-
----
-
-## 3. Infrastructure & Secret Hygiene
-- Never commit `.env` or secrets to Git.
-- Enforce automated vulnerability scans (`pnpm audit`).
-- Apply least privilege to database users.
+## 3. Environment & Secrets Safety
+- Store credentials exclusively in `.env` and `.env.local` (never committed to Git).
+- Require explicit human approval before running destructive database migrations.

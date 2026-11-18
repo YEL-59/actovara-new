@@ -1,29 +1,36 @@
 # Dependencies
 node_modules/
-.pnpm-store/
+*/node_modules/
 
-# Build output
-.next/
+# Production builds
 dist/
-build/
-coverage/
-.turbo/
+*/dist/
+.next/
+*/.next/
+out/
+*/out/
 
-# Local environment and secrets
-!.env.example
-*.pem
-*.key
+# Environment variables
+.env*.local
+*/.env
+*/.env*.local
 
-# Logs and OS files
-*.log
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS Files
 .DS_Store
 Thumbs.db
-
-# Editors
-.idea/
-
-# Local client inputs may contain confidential information.
-# Uncomment the following lines if client documents should never be committed:
-# input/client-docs/*
-# !input/client-docs/.gitkeep
 config.bat
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Private client documents: kept local only (this repo is public)
+inputs/client_docs/*.pdf
+inputs/client_docs/*.docx
+inputs/client_docs/*.doc
+inputs/client_docs/requirements.md

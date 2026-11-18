@@ -1,57 +1,41 @@
 ---
 name: project-planning
-description: Workflow for analyzing client requirements in README.md, preparing technical documentation in docs/, and initializing tasks in planning/task.md under the Avengers Protocol.
+description: Workflow for analyzing client requirements (PDF briefs, Telegram chat exports, Figma links, and screenshots), preparing technical blueprints in docs/ and PRD_AND_PLAN.md, and decomposing isolated tasks in planning/tasks/.
 ---
 
-# Project Planning Workflow (Iron Man)
+# Project Planning & Client Intake Workflow
 
 ## Purpose
-Guide the Chief Orchestrator (`iron_man`) to translate client requirements into structured technical blueprints and prioritized task boards without inventing details or burning excessive tokens.
+Translate raw client materials (`inputs/client_docs/`, `inputs/figma/`, `inputs/screenshots/`, `inputs/references.md`) into structured technical blueprints (`PRD_AND_PLAN.md` & `docs/`) and atomic task files (`planning/tasks/TASK-XXX.md`) with zero wasted tokens and zero invented requirements.
 
 ## Prerequisites
-- Read root `README.md` (single source of truth for requirements).
-- Read `project.config.md` (stack settings).
-- Read `AGENTS.md` (global rules).
+1. Read `settings.json` and `project.config.md` (verify active `language`, `executionStrategy`, and `backendStack`).
+2. Run `node scripts/parse-inputs.js` (`npm run inputs`) or inspect:
+   - `inputs/client_docs/telegram_chat.txt` / `messages.html` / `result.json`
+   - `inputs/client_docs/requirements.md` / `.pdf`
+   - `inputs/figma/figma_links.md` & `inputs/figma/exports/`
+   - `inputs/screenshots/` & `inputs/references.md`
 
 ## Execution Steps
 
-### 1. Requirements Discovery
-- Extract functional requirements (`REQ-F-001`, `REQ-F-002`, ...), non-functional requirements, constraints, and external integrations from `README.md`.
-- Identify ambiguities or missing specifications.
-- **Rule**: If a requirement is missing or unclear, record it in `planning/open-questions.md`. Never guess client intent.
+### 1. Conflict Resolution & Zero-Assumption Discovery
+- Apply strict hierarchy: **Active User Prompt > Telegram Chat (`messages.html` / `.txt`) > Figma Designs > Initial PDF Brief**.
+- Record any missing or ambiguous business logic in `planning/open-questions.md`. Never guess client intent.
 
-### 2. Technical Blueprint Generation (`docs/`)
-Create or incrementally update the core technical specifications:
-- `docs/01-requirements-analysis.md`: Detailed functional/non-functional breakdown.
-- `docs/02-system-architecture.md`: High-level component and data flow.
-- `docs/07-database-design.md`: Tables, models, relations, and indexes.
-- `docs/08-api-contract.md`: Endpoints, request/response DTOs, and error codes.
-- `docs/10-security-plan.md`: Authentication, authorization, and rate limiting.
-- `docs/13-acceptance-criteria.md`: Verifiable completion criteria for each feature.
+### 2. Technical Blueprint Generation (`PRD_AND_PLAN.md` & `docs/`)
+Generate or update the core technical specifications:
+- `PRD_AND_PLAN.md`: Master Visual Blueprint (Mermaid System Architecture, User Journey Flowchart, API Sequence Diagram, Database ERD, and Screen Mapping).
+- `docs/01-requirements-analysis.md`: Functional (`REQ-F-001`...) & Non-functional requirements.
+- `docs/02-system-architecture.md`: Full-stack architecture matched to the selected `backendStack`.
+- `docs/03-figma-analysis.md`: Figma frame/node inventory, responsive breakpoints, and screenshot mapping.
+- `docs/04-design-system.md`: Semantic CSS variables, colors, typography scale, and 6 UI states.
+- `docs/06-backend-architecture.md`: Modular backend architecture for the active stack (`EXPRESS_MONGOOSE`, `EXPRESS_PRISMA_POSTGRES`, `NESTJS_PRISMA_POSTGRES`, `FASTAPI_PYTHON`, or `CUSTOM_ANY`).
+- `docs/07-database-design.md`: Visual Mermaid ERD + Mongoose or Prisma/SQL schema definitions.
+- `docs/08-api-contract.md`: Endpoints, request/response DTOs, and standardized `sendResponse` envelope.
 
-*Token Optimization Tip: Use compact markdown tables and concise TypeScript/DTO interfaces instead of long conversational text.*
-
-### 3. Task Board Initialization & Granular Decomposition (`planning/tasks/`)
-Decompose the work into sequential and parallel tasks:
-- **Master Board (`planning/task.md`)**: Maintain the high-level Kanban overview linking each task ID to its file in `tasks/TASK-XXX.md`.
-- **Dynamic Granular Task Creation (`planning/tasks/TASK-XXX.md`)**: Generate or update an individual specification markdown file for each task (e.g. `planning/tasks/TASK-001.md`, `TASK-002.md`). Each file must include:
-  1. Status, Assignee, Priority, Dependencies, and Master Board Link.
-  2. Objective and User Story.
-  3. Direct inputs and contract references (`docs/08-api-contract.md`, `DESIGN_GUIDELINES.md`).
-  4. Granular step-by-step execution plan.
-  5. Acceptance criteria checklist.
-  6. Verification evidence block for Thanos.
-  7. Fresh session handoff command.
-- Assign each task to the appropriate hero agent:
-  - `[jarvis]`: Design tokens, UI states, component primitives.
-  - `[edith]`: DB schema, migrations, backend services, REST APIs.
-  - `[friday]`: Next.js web components, forms, client integration.
-  - `[thor]`: Flutter mobile views (if mobile enabled).
-  - `[thanos]`: Verification, tests, acceptance validation.
-  - `[ultron]`: Docker, Nginx, CI/CD, cyber security.
-
-*Token Optimization Tip: Granular task files isolate context so specialist agents only load their active task (~60 lines) instead of reading a massive monolithic document, cutting token consumption by 85–90%.*
+### 3. Granular Task Decomposition (`planning/tasks/TASK-XXX.md`)
+- Populate `planning/task.md` and `PROJECT_STATUS.md`.
+- Create isolated ~50-line task files in `planning/tasks/TASK-001.md`..`TASK-00N.md` ordered according to `executionStrategy` (`FRONTEND_FIRST`, `BOTH_FULLSTACK`, `BACKEND_FIRST`, or `FIGMA_TO_FULLSTACK`).
 
 ### 4. Human Approval Gate
-Present the planning summary to the human developer. Do not start coding until the plan is approved.
-
+- Stop and present the plan in the user's configured language (`en` or `bn`). Do not write application code until approved with `"OK"` or `"Proceed"`.

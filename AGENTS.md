@@ -1,109 +1,62 @@
-# Avengers Protocol: Global Agent Rules (AGENTS.md)
+# Autonomous Project Execution Protocol: EasyTemplate v2.0
 
-> **Avengerse Version**: 1.0  
-> **Architecture**: Hierarchical Multi-Agent System  
-> **Chief Orchestrator**: `iron_man`  
-> **Specialists**: `jarvis`, `friday`, `edith`, `thor`, `thanos`, `ultron`  
+This workspace enforces a **Plan-First, Context-Isolated, Universal Full-Stack Execution Engine** with persistent session memory, Figma/screenshot cloning, and modular skill playbooks (`.agents/skills/` and `.claude/skills/`).
 
 ---
 
-## 1. System Architecture & The 5 Layers
+## 1. Core Mandates
 
-1. **Layer 1: User Interface**: The developer gives high-level goals and requests to the Chief Orchestrator (`iron_man`).
-2. **Layer 2: Chief Orchestrator (`iron_man`)**: Deconstructs requests, creates tasks in `planning/task.md`, selects specialist agents, and coordinates execution. Iron Man avoids direct feature coding when a specialist is appropriate.
-3. **Layer 3: Specialized Agents**:
-   - `jarvis`: UI/UX, Design System, Tokens, Figma Analysis, 6 UI States.
-   - `friday`: Frontend Web (Next.js, React, TypeScript, Client State, Forms).
-   - `edith`: Backend & Data (NestJS, Prisma, PostgreSQL, Redis, API Contracts).
-   - `thor`: Mobile (Flutter, Dart, Riverpod/Bloc — activated only when mobile is in scope).
-   - `thanos`: QA, Verification, Unit/Integration/E2E testing, Bug Snapping.
-   - `ultron`: DevOps, Infrastructure, Docker, Nginx, CI/CD, Cyber Security.
-4. **Layer 4: Shared Project Contracts**: Agents communicate through version-controlled artifacts (`docs/`, `planning/task.md`, `project.config.md`), never through long conversational loops.
-5. **Layer 5: Independent Verification**: Every task requires acceptance criteria. `thanos` verifies actual code and test execution before any task is marked `DONE`.
-
----
-
-## 2. Source of Truth Hierarchy
-
-When resolving conflicts or determining implementation behavior, agents must follow this strict priority:
-
-1. **Explicit human user instructions** in the active session.
-2. **Confirmed client requirements** in the root `README.md`.
-3. **Approved architectural decisions** in `planning/decisions.md`.
-4. **Approved technical contracts** in `docs/` (`08-api-contract.md`, `07-database-design.md`, etc.).
-5. **Existing verified repository code and tests**.
-6. **Clearly labeled technical assumptions** awaiting confirmation.
-
-*If two confirmed requirements conflict, stop and report the contradiction. Never make a silent choice.*
-
----
-
-## 3. Context Isolation & Token Efficiency (Mandatory)
-
-To guarantee **minimum tokens and maximum output**, every agent must follow **Progressive Disclosure**:
-
-1. **Load only what is needed**: Determine whether a document is strictly necessary before loading it.
-2. **Do not load by default**:
-   - Never load the entire repository or deep directory listings.
-   - Never load unrelated domains (e.g., Friday never loads Docker/backend code; Edith never loads CSS/Figma tokens).
-   - Never read `package-lock.json`, `pnpm-lock.yaml`, `.git`, or build directories.
-3. **Use Artifacts for Cross-Agent Coordination**: Rather than passing large blocks of text in chat, write to canonical documents (`docs/08-api-contract.md`, `planning/task.md`) and pass brief file references.
-4. **Focused File Edits**: Make targeted edits (`replace_file_content` / focused chunks); do not rewrite entire files for small changes.
+1. **Architecture (Zero-Docker Default)**:
+   - **Frontend (`frontend/`)**: Next.js (App Router) + TypeScript + Tailwind CSS + Lucide Icons + 11 6-State UI Primitives (`frontend/src/components/ui/`).
+   - **Backend (`backend/`)**: Modular domain pattern (`backend/src/modules/<feature>/`, `backend/AGENTS.md`) adhering to `docs/08-api-contract.md`.
+     - `EXPRESS_MONGOOSE` *(Implemented default runtime)*: Node.js + Express + TypeScript + Mongoose (with in-memory seed fallback when MongoDB is unreachable).
+     - `EXPRESS_PRISMA_POSTGRES`, `NESTJS_PRISMA_POSTGRES`, `FASTAPI_PYTHON`, `CUSTOM_ANY`: Plan/schema templates (`backend/prisma/schema.prisma`, `docs/06-backend-architecture.md`) to be scaffolded during `TASK-002`/`TASK-003` when selected in `settings.json`.
+2. **Context Isolation & Skills**:
+   - High-level task state lives in `PROJECT_STATUS.md` and `planning/task.md`; atomic specs live in `planning/tasks/TASK-XXX.md`.
+   - Load **only** the active task spec and the blueprint/skill mapped in `docs/context-map.md`.
+   - Skills live in both `.agents/skills/` and `.claude/skills/`: `project-planning`, `figma-to-fullstack`, `design-system`, `frontend-development`, `backend-development`, `api-contract-validation`, `task-execution`, `client-modification`, `client-communication`, `testing`.
+3. **Conflict Resolution & Input Scanner (`npm run inputs`)**:
+   - Priority: Active user prompt > Telegram chat exports (`inputs/client_docs/`) > Figma designs (`inputs/figma/figma_links.md`) > UI Screenshots (`inputs/screenshots/`) > Initial PDF/brief.
+   - Run `node scripts/parse-inputs.js` (`npm run inputs`) to parse PDFs, Telegram chats, Figma links, and image dimensions into `inputs/INTAKE_SUMMARY.md`.
+   - Run `npm run new-project` (`node scripts/new-project.js`) when starting a brand-new client project to reset `PROJECT_STATUS.md` and `planning/*` to a clean `0%` state.
+4. **Zero-Assumption Policy**:
+   - Never invent client requirements. Log missing specs in `planning/open-questions.md` and ask the developer.
+5. **Persistent Session Memory**:
+   - Every prompt execution, touched file, and build verification must be logged to `planning/MEMORY.md` and `PROJECT_STATUS.md`.
+   - On session resume, read `PROJECT_STATUS.md` and `planning/MEMORY.md` first to restore context in under 300 tokens.
+6. **Language Preference (`settings.json`)**:
+   - Inspect `"language"` in `settings.json` (`"en"` or `"bn"`). Respond 100% in English when `"en"`, or Bangla when `"bn"`.
+7. **Mandatory Backend Pre-Execution Gate**:
+   - Before writing any backend schemas or routes, audit client briefs, Figma designs (`docs/03-figma-analysis.md`), and frontend views, then generate and present:
+     1. End-to-End System & API Request Flowchart (`mermaid flowchart TD`)
+     2. Visual Database ERD (`mermaid erDiagram`) in `docs/07-database-design.md`
+     3. Endpoint Specification Matrix in `docs/08-api-contract.md` and `planning/BACKEND_PLAN.md`
+   - **STOP & PRESENT TO DEVELOPER**: Wait for explicit `"OK"` / `"Proceed"` approval before coding backend modules.
 
 ---
 
-## 4. Scope Control & Boundary Discipline
+## 2. The 3 Execution Phases
 
-- An agent must work **only within its assigned domain** and on its assigned Task ID.
-- If a task requires cross-domain changes (e.g., frontend task requires a new backend endpoint):
-  1. The agent must **stop and report the dependency**.
-  2. Ask `iron_man` to create and delegate a separate task to the responsible agent (e.g., `edith`).
-  3. Never silently modify another agent's domain or expand task scope.
+### Phase 1: Intake & Plan Generation (Before Coding)
+1. Follow `.agents/skills/project-planning/SKILL.md` (and `.agents/skills/figma-to-fullstack/SKILL.md` if Figma links exist).
+2. Run `npm run inputs`, resolve conflicts, confirm `executionStrategy` (`FRONTEND_FIRST`, `FIGMA_TO_FULLSTACK`, `BOTH_FULLSTACK`, or `BACKEND_FIRST`) and `backendStack` from `settings.json`.
+3. Generate `PRD_AND_PLAN.md`, `planning/BACKEND_PLAN.md`, `docs/03`–`08`, and populate `planning/tasks/TASK-001.md`..`TASK-006.md`.
+4. **STOP & PRESENT TO USER**: Do not write application code until the user replies `"OK"` or `"Proceed"`.
 
----
+### Phase 2: Sequential Execution (1-by-1)
+1. Follow `.agents/skills/task-execution/SKILL.md` for the next ready task in `PROJECT_STATUS.md`.
+2. **Frontend 6-State Requirement**: Every interactive screen must implement (1) Default/Success, (2) Loading Skeleton, (3) Empty State, (4) Validation/Error Alert, (5) Responsive Breakpoints (`<640px`, `640-1024px`, `>1024px`), and (6) Keyboard Focus (`focus-visible:ring-2`).
+3. **Zero-Placeholder Assets**: Store local visuals under semantic folders in `frontend/public/images/` (`hero`, `products`, `categories`, `gallery`, `features`, `anatomy`, `showroom`, `slices`).
+4. **Build & Test Gate**: Run `npm run build --prefix backend`, `npm test --prefix backend`, and `npm run build --prefix frontend` (0 errors).
+5. **Memory & Completion Card**: Update `planning/task.md`, `PROJECT_STATUS.md`, and `planning/MEMORY.md`, and display the bilingual Task Completion Report defined in `.agents/skills/task-execution/SKILL.md`.
 
-## 5. Engineering Standards & Code Quality
-
-- **Language**: Use TypeScript with strict typing for web and backend; use Dart for Flutter.
-- **Simplicity**: Prefer clear, readable, and maintainable code over clever abstractions.
-- **Validation**: Enforce robust validation on external inputs (`zod` on client, `class-validator` DTOs on server).
-- **Error Handling**: Standardize error responses; handle edge cases explicitly; never silently swallow exceptions.
-- **Single Responsibility**: Keep transport (controllers), business logic (services), and data access (repositories/Prisma) cleanly separated.
-- **Frontend UI States**: Every applicable screen/component must implement the **6 mandatory UI states** defined by Jarvis: (1) Default/Success, (2) Loading Skeleton, (3) Empty State, (4) Validation/Error, (5) Responsive, (6) Interactive/Focus.
-
----
-
-## 6. Safety & Human Approval Gates
-
-The following actions **STRICTLY REQUIRE EXPLICIT HUMAN APPROVAL**:
-
-1. Destructive database migrations, dropping tables, or altering production data.
-2. Production deployments or publishing releases.
-3. Modifying secrets, environment files (`.env`), or credential configurations.
-4. Material architectural changes that deviate from `docs/` or `project.config.md`.
-5. Overwriting or deleting client requirements in `README.md`.
-
-*Never disable security checks, linter rules, or test assertions merely to make a build pass.*
+### Phase 3: Final Verification & Handover
+1. Run `.agents/skills/testing/SKILL.md` checks: `npm run validate`, `npm run validate-contracts`, `npm test`, and `npm run audit-assets`.
+2. Present the client handover summary and startup commands (`npm run dev`).
 
 ---
 
-## 7. Completion & Verification Reporting
+## 3. Client Modifications & Client Replies
 
-Every agent must conclude an implementation task by reporting evidence:
-
-```markdown
-### Task Completion Report: [TASK-ID]
-- **Status**: DONE / BLOCKED / IN_REVIEW
-- **Files Inspected**: [list files]
-- **Files Created/Modified**: [list files]
-- **Implementation Summary**: [concise 2-4 bullet summary]
-- **Verification Performed**: [commands executed by Thanos or agent]
-- **Actual Test Results**: [Passed / Failed / Not run with reasons]
-- **Remaining Blockers / Open Questions**: [None or list]
-- **Next Dependency-Ready Task**: [Next TASK-ID]
-- **Fresh Session Handoff Command**: `"planning/updateplanning.md পড়ে [Next TASK-ID] শুরু করো।"`
-```
-
-*A successful agent response alone is NOT proof that the task passed. Actual test output must be provided.*
-*Token-Saving Mandate: At the end of each task completion, agents must provide the exact Fresh Session Handoff command above, advising the human developer to open a new chat window to prevent token compounding and maintain 95% token efficiency.*
-
+- **Client Modifications (Phase 5 Ripple)**: Follow `.agents/skills/client-modification/SKILL.md`. Audit `planning/MEMORY.md`, trace changes across Database (`docs/07-database-design.md`) -> Backend (`docs/08-api-contract.md`) -> Frontend UI, verify builds, and log to `planning/MEMORY.md`.
+- **Client Communication**: Follow `.agents/skills/client-communication/SKILL.md`. Read `inputs/client_comms/incoming_message.md` and `planning/MEMORY.md`, draft Quick Chat + Formal Platform replies, and log to `inputs/client_comms/reply_history.md`.

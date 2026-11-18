@@ -1,42 +1,28 @@
 ---
 name: frontend-development
-description: Workflow for building Next.js App Router components, screens, client state, forms, and API integrations with Friday.
+description: Workflow for building Next.js 14 App Router screens, Figma/Screenshot-accurate components, 6 UI states, forms, and API integrations.
 ---
 
-# Frontend Development Workflow (Friday)
+# Frontend Development Workflow
 
 ## Purpose
-Guide the Frontend Specialist (`friday`) to implement performant, accessible, and resilient web interfaces in `development/frontend/`.
-
-## Stack Standards
-- Next.js (App Router), TypeScript (strict mode), Tailwind CSS.
-- Client state: Zustand.
-- Server state: TanStack Query (React Query).
-- Forms: React Hook Form + Zod.
+Implement performant, accessible, and visually faithful web interfaces in `frontend/` using Next.js 14 App Router, TypeScript, Tailwind CSS, and Lucide Icons.
 
 ## Step-by-Step Procedure
 
-### 1. Contract Verification
-- Open `docs/08-api-contract.md` to review the exact API endpoint, request body, query params, response shape, and error codes.
-- Do not guess or hallucinate backend routes.
+### 1. Design & Contract Verification
+- Check `docs/03-figma-analysis.md`, `docs/04-design-system.md`, and `inputs/screenshots/` or `inputs/figma/` for visual layout.
+- Check `docs/08-api-contract.md` for exact API routes, query params, and response envelopes.
 
 ### 2. Mandatory 6 UI States Implementation
-Every page, table, and data-bound form must implement:
-1. **Default / Success State**: Clean, crisp UI with active data rendering.
-2. **Loading Skeleton State**: Tailored skeleton loader matching the exact shape of cards/rows.
-3. **Empty State**: Icon, headline, friendly description, and action button.
-4. **Validation & Error State**: Inline red helper text for input fields; toast notifications for API failure.
-5. **Responsive State**: Mobile-first design, fluid grid, collapsible sidebar, table horizontal scroll.
-6. **Interactive & Accessibility State**: Visible focus ring (`focus-visible:ring-2`), hover animations (`transition-all duration-200`), accessible ARIA labels.
+Every screen, table, and interactive data component must implement:
+1. **Default / Success State**: Pixel-accurate layout with realistic local assets in `frontend/public/images/<domain>/`.
+2. **Loading Skeleton State**: Geometry-matched shimmer skeletons (`<SkeletonProductCard />`, `<SkeletonTableRow />`) with zero layout shift (`CLS = 0`).
+3. **Empty State**: `<EmptyState />` with icon, headline, description, and reset/action CTA.
+4. **Validation & Error State**: Inline `<Input error="..." />` messages and `<Alert variant="danger" />` banners.
+5. **Responsive State**: Mobile (`<640px` drawer/sticky bottom bar), Tablet (`640px-1024px`), Desktop (`>1024px`).
+6. **Interactive & Focus State**: Visible `focus-visible:ring-2`, smooth hover transitions, and keyboard accessibility.
 
-### 3. API Integration
-- Use a centralized API client with automatic token attachment and error interceptors.
-- Handle network errors, 401 unauthorized redirects, and 422 validation errors gracefully.
-
-### 4. Verification
-- Run:
-  ```bash
-  pnpm --filter frontend type-check # or npm run type-check
-  pnpm --filter frontend test       # or npm run test
-  ```
-- Inspect responsive behavior and keyboard accessibility.
+### 3. Build & Asset Verification
+- Ensure all images reside in semantic folders under `frontend/public/images/`.
+- Run `npm run build` in `frontend/` and verify `0` TypeScript or Next.js build errors.

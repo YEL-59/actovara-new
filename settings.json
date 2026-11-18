@@ -1,0 +1,10 @@
+{
+  "language": "en",
+  "executionStrategy": "FRONTEND_FIRST",
+  "backendStack": "NESTJS_PRISMA_POSTGRES",
+  "designSource": "FIGMA_AND_SCREENSHOTS",
+  "memoryTracking": true,
+  "autoBuildVerification": true,
+  "antiRegression": true,
+  "version": "2.0.0"
+}

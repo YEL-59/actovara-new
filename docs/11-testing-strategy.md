@@ -1,20 +1,12 @@
-# 11 — Testing Strategy & Verification
+# 11 — Testing & Verification Strategy (`docs/11-testing-strategy.md`)
 
-> Owned and maintained by `thanos`.
+## 1. Continuous Build Verification Gate (Mandatory per Task)
+Every task must pass both build gates with **0 errors** before completion:
+1. **Backend Build**: `npm run build --prefix backend`
+2. **Frontend Build**: `npm run build --prefix frontend`
 
----
-
-## 1. Test Matrix
-| Level | Tool | Target Scope | Frequency |
-|---|---|---|---|
-| **Unit Tests** | Vitest / Jest | Pure functions, domain services, utility methods | On every file save / commit |
-| **Component Tests** | React Testing Library | UI states, accessible labels, button clicks | On PR / task review |
-| **Integration Tests** | Supertest | NestJS controllers, Prisma queries, DB transactions | Before marking task DONE |
-| **E2E Tests** | Playwright | Full critical flows (Login -> Onboarding -> Checkout) | Pre-deployment milestone |
-
----
-
-## 2. Thanos Quality Gate (Zero Unverified Code)
-- A task is NEVER `DONE` based on an agent's claim alone.
-- Real terminal output with 0 failures is required.
-- If a test fails, Thanos captures logs and re-delegates to the responsible agent (Friday, Edith, or Thor).
+## 2. Automated Zero-Token Validation Scripts (`scripts/`)
+- **Full Project Audit**: `npm run validate` (`scripts/validate-project.ps1`)
+- **API Contract Validation**: `npm run validate-contracts` (`scripts/validate-contracts.ps1`)
+- **Semantic Image Asset Audit**: `npm run audit-assets` (`scripts/audit-assets.ps1`)
+- **Client Input Parser**: `npm run inputs` (`scripts/parse-inputs.js`)

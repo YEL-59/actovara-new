@@ -1,59 +1,30 @@
-# TASK-006: Implement Backend Core Authentication API
+# TASK-006: Full Platform Verification & Build Audit
 
-> **Status**: `BACKLOG`  
-> **Assignee**: `edith` (Backend & Data Architect)  
-> **Priority**: `P0` (Critical)  
-> **Dependencies**: `TASK-004`  
-> **Master Board**: [planning/task.md](../task.md)
-
----
-
-## 1. Objective & User Story
-As Backend and Data Specialist (`edith`), implement secure JWT authentication in NestJS, including User registration, password hashing with bcrypt, login with JWT issuance, refresh token rotation, and JWT guard middleware.
+- **Task ID**: `TASK-006`
+- **Domain**: QA & Verification
+- **Status**: `BACKLOG`
+- **Priority**: `P0`
+- **Assigned Role**: QA Verifier
+- **Dependencies**: `TASK-005`
 
 ---
 
-## 2. Inputs & Context Documents
-- **API Contracts**: [docs/08-api-contract.md](../../docs/08-api-contract.md)
-- **Security Plan**: [docs/10-security-plan.md](../../docs/10-security-plan.md)
-- **Prisma Schema**: [development/backend/prisma/schema.prisma](../../development/backend/prisma/schema.prisma)
+## 1. Objective
+Perform end-to-end audit, TypeScript compilation validation for both backend and frontend, run automated tests, and prepare clean client handover report.
 
 ---
 
-## 3. Step-by-Step Execution Plan
-1. Create `AuthModule`, `AuthController`, and `AuthService` in `development/backend/src/modules/auth/`.
-2. Implement `RegisterDto` and `LoginDto` with `class-validator` decorators.
-3. Configure `bcrypt` with minimum 10 salt rounds for password hashing.
-4. Implement JWT signing with access token (short TTL: 15m) and secure refresh token (long TTL: 7d).
-5. Implement `JwtAuthGuard` and `@CurrentUser()` parameter decorator.
-6. Enable CORS in `main.ts` for frontend origin (`http://localhost:3000`) with credentials enabled.
-7. Write unit tests for `AuthService` covering successful login and invalid credentials.
+## 2. Deliverables
+1. Run backend build and API test suite in `backend/`.
+2. Run frontend build and lint check in `frontend/`.
+3. Execute `scripts/validate-project.ps1`, `scripts/validate-contracts.ps1`, and `scripts/audit-assets.ps1`.
+4. Update `planning/updateplanning.md`, `planning/task.md`, `PROJECT_STATUS.md`, and `planning/MEMORY.md` marking all tasks completed.
+5. Generate client handover summary with endpoint table, UI fidelity checklist, and git commit command.
 
 ---
 
-## 4. Expected Outputs
-- `src/modules/auth/` containing complete authentication logic.
-- Protected route decorator `@UseGuards(JwtAuthGuard)`.
-- Unit tests in `src/modules/auth/auth.service.spec.ts`.
-
----
-
-## 5. Acceptance Criteria
-- [ ] Valid credentials return HTTP 200 with JWT access token.
-- [ ] Invalid credentials return HTTP 401 with standard error format.
-- [ ] Duplicate email registration returns HTTP 409 Conflict.
-- [ ] Passwords are never returned in response DTOs or logged in server logs.
-
----
-
-## 6. Verification Evidence (Thanos)
-- **Command**: `cd development/backend && npm run test`
-- **Status**: `Pending Verification`
-- **Output Log**: Awaiting execution.
-
----
-
-## 7. Fresh Session Handoff
-```markdown
-planning/updateplanning.md পড়ে TASK-007 শুরু করো।
-```
+## 3. Acceptance & Verification Criteria
+- [ ] Backend build and API smoke tests pass with exit code 0.
+- [ ] Frontend build passes with exit code 0.
+- [ ] Zero unhandled errors in console (`validate-project`, `validate-contracts`, and `audit-assets` pass with 0 issues).
+- [ ] Handover report delivered to human developer.

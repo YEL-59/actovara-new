@@ -2,93 +2,158 @@
 set -euo pipefail
 
 echo "=========================================================="
-echo "🛡️  Avengerse (Avengers Protocol) Project Validation Check"
+echo "  EasyTemplate v2.0 Universal Full-Stack Validation Suite "
 echo "=========================================================="
 
 FAILED=0
 
 check_file() {
   if [ -f "$1" ]; then
-    echo "  ✅ Found: $1"
+    echo "  [OK] Found: $1"
   else
-    echo "  ❌ MISSING: $1"
+    echo "  [FAIL] MISSING: $1"
     FAILED=$((FAILED + 1))
   fi
 }
 
 check_dir() {
   if [ -d "$1" ]; then
-    echo "  ✅ Found Directory: $1"
+    echo "  [OK] Found Directory: $1"
   else
-    echo "  ❌ MISSING Directory: $1"
+    echo "  [FAIL] MISSING Directory: $1"
     FAILED=$((FAILED + 1))
   fi
 }
 
 echo ""
-echo "1. Checking Core Protocol Files..."
-check_file "README.md"
+echo "1. Checking Core Framework & Agent Rules..."
 check_file "AGENTS.md"
-check_file "project.config.md"
+check_file "backend/AGENTS.md"
+check_file "frontend/AGENTS.md"
+check_file "frontend/DESIGN_GUIDELINES.md"
+check_file "README.md"
 check_file "HOW_TO_USE_BN.md"
 check_file "HOW_TO_USE_EN.md"
 check_file "PROJECT_STRUCTURE.md"
+check_file "PROMPT_SHORTCUT.md"
+check_file "project.config.md"
+check_file "settings.json"
 
 echo ""
-echo "2. Checking Codex Multi-Agent Configuration (.codex/)..."
-check_file ".codex/config.toml"
-check_file ".codex/agents/iron_man.toml"
-check_file ".codex/agents/jarvis.toml"
-check_file ".codex/agents/friday.toml"
-check_file ".codex/agents/edith.toml"
-check_file ".codex/agents/thor.toml"
-check_file ".codex/agents/thanos.toml"
-check_file ".codex/agents/ultron.toml"
-
-echo ""
-echo "3. Checking Reusable Skills (.agents/skills/)..."
+echo "2. Checking Executable Agent Skills (.agents/skills/) & Blueprints (docs/)..."
 check_file ".agents/skills/project-planning/SKILL.md"
-check_file ".agents/skills/task-execution/SKILL.md"
-check_file ".agents/skills/frontend-development/SKILL.md"
+check_file ".agents/skills/figma-to-fullstack/SKILL.md"
 check_file ".agents/skills/backend-development/SKILL.md"
-check_file ".agents/skills/design-system/SKILL.md"
-check_file ".agents/skills/api-contract-validation/SKILL.md"
-check_file ".agents/skills/testing/SKILL.md"
-check_file ".agents/skills/deployment-security/SKILL.md"
+check_file ".agents/skills/frontend-development/SKILL.md"
+check_file "docs/03-figma-analysis.md"
+check_file "docs/04-design-system.md"
+check_file "docs/06-backend-architecture.md"
+check_file "docs/07-database-design.md"
+check_file "docs/08-api-contract.md"
+check_file "docs/09-error-handling-and-logging.md"
+check_file "docs/10-security-plan.md"
+check_file "docs/11-testing-strategy.md"
+check_file "docs/12-deployment-and-devops.md"
+check_file "docs/13-acceptance-criteria.md"
+check_dir ".claude/skills"
+check_file "scripts/new-project.js"
+check_file ".github/workflows/ci.yml"
 
 echo ""
-echo "4. Checking Planning Governance (planning/)..."
+echo "3. Checking Planning & Inputs Governance..."
+check_file "inputs/figma/README.md"
+check_file "inputs/figma/figma_links.md"
+check_file "planning/MEMORY.md"
 check_file "planning/task.md"
 check_file "planning/updateplanning.md"
-check_file "planning/decisions.md"
-check_file "planning/open-questions.md"
-check_dir "planning/checkpoints"
 check_dir "planning/tasks"
 
 echo ""
-echo "5. Checking Technical Documentation (docs/ 01 - 14)..."
-for i in $(seq -w 1 14); do
-  MATCH=$(find docs -maxdepth 1 -name "${i}-*.md" 2>/dev/null | head -n 1)
-  if [ -n "$MATCH" ]; then
-    echo "  ✅ Found Doc: $MATCH"
+echo "4. Checking Universal Modular Backend Core & Domain Modules (backend/)..."
+check_file "backend/package.json"
+check_file "backend/tsconfig.json"
+check_file "backend/prisma/schema.prisma"
+check_file "backend/src/app.ts"
+check_file "backend/src/server.ts"
+check_file "backend/src/database/index.ts"
+check_file "backend/src/database/seed.ts"
+check_file "backend/src/modules/health/health.route.ts"
+check_file "backend/src/modules/docs/openapi.spec.ts"
+check_file "backend/src/modules/docs/docs.route.ts"
+check_file "backend/src/modules/auth/user.model.ts"
+check_file "backend/src/modules/auth/auth.route.ts"
+check_file "backend/src/modules/category/category.model.ts"
+check_file "backend/src/modules/category/category.route.ts"
+check_file "backend/src/modules/item/item.model.ts"
+check_file "backend/src/modules/item/item.route.ts"
+check_file "backend/src/modules/order/order.model.ts"
+check_file "backend/src/modules/order/order.route.ts"
+check_file "backend/src/routes/index.ts"
+check_file "backend/src/middlewares/globalErrorHandler.ts"
+check_file "backend/src/utils/sendResponse.ts"
+
+echo ""
+echo "5. Checking Frontend Core, App Router Views & 6-State UI Primitives (frontend/)..."
+check_file "frontend/package.json"
+check_file "frontend/tsconfig.json"
+check_file "frontend/src/app/page.tsx"
+check_file "frontend/src/app/items/page.tsx"
+check_file "frontend/src/app/items/[slug]/page.tsx"
+check_file "frontend/src/app/dashboard/page.tsx"
+check_file "frontend/src/app/layout.tsx"
+check_file "frontend/src/app/globals.css"
+check_file "frontend/src/components/layout/Navbar.tsx"
+check_file "frontend/src/components/layout/Footer.tsx"
+check_file "frontend/src/services/api.ts"
+check_file "frontend/src/components/ui/index.ts"
+check_file "frontend/src/components/ui/Button.tsx"
+check_file "frontend/src/components/ui/Card.tsx"
+check_file "frontend/src/components/ui/Input.tsx"
+check_file "frontend/src/components/ui/Skeleton.tsx"
+check_file "frontend/src/components/ui/EmptyState.tsx"
+check_file "frontend/src/components/ui/Alert.tsx"
+check_file "frontend/src/components/ui/Badge.tsx"
+check_file "frontend/src/components/ui/Dialog.tsx"
+check_file "frontend/src/components/ui/SpecTable.tsx"
+check_file "frontend/src/components/ui/Tabs.tsx"
+check_file "frontend/src/components/ui/Textarea.tsx"
+
+echo ""
+echo "6. Verifying Backend TypeScript Build..."
+if [ -d "backend/node_modules" ]; then
+  if (cd backend && npm run build); then
+    echo "  [OK] Backend build compiled successfully with 0 errors!"
   else
-    echo "  ❌ MISSING Doc for prefix ${i}-"
+    echo "  [FAIL] Backend build failed."
     FAILED=$((FAILED + 1))
   fi
-done
+else
+  echo "  [FAIL] Missing backend/node_modules. Run 'npm run install:all' before validating."
+  FAILED=$((FAILED + 1))
+fi
 
 echo ""
-echo "6. Checking Development Rules & Boundaries..."
-check_file "development/AGENTS.md"
-check_file "development/frontend/AGENTS.md"
-check_file "development/backend/AGENTS.md"
-check_file "development/mobile/AGENTS.md"
+echo "7. Verifying Frontend Next.js Build..."
+if [ -d "frontend/node_modules" ]; then
+  if (cd frontend && npm run build); then
+    echo "  [OK] Frontend build compiled successfully with 0 errors!"
+  else
+    echo "  [FAIL] Frontend build failed."
+    FAILED=$((FAILED + 1))
+  fi
+else
+  echo "  [FAIL] Missing frontend/node_modules. Run 'npm run install:all' before validating."
+  FAILED=$((FAILED + 1))
+fi
 
 echo ""
+echo "=========================================================="
 if [ "$FAILED" -eq 0 ]; then
-  echo "🎉 SUCCESS: All Avengerse project structures and agent protocols validated successfully!"
+  echo "  SUCCESS: All EasyTemplate v2.0 components are healthy!"
+  echo "=========================================================="
   exit 0
 else
-  echo "⚠️ ERROR: $FAILED checks failed. Please fix missing files."
+  echo "  FAILED: Encountered $FAILED issues. Please fix missing files."
+  echo "=========================================================="
   exit 1
 fi

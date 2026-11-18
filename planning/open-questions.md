@@ -1,18 +1,19 @@
-# Open Questions & Client Clarifications
+# Client Open Questions & Zero-Assumption Log (`planning/open-questions.md`)
 
-> **Rule**: When requirements, business logic, permissions, edge cases, or UX flows are ambiguous, Iron Man and all agents must log them here rather than inventing assumptions.
+> **Zero-Assumption Policy (`AGENTS.md` Mandate 4)**: AI agents must NEVER invent client requirements. Any missing, ambiguous, or contradictory specifications discovered during intake (`TASK-001`) or execution must be recorded here.
 
 ---
 
 ## Active Questions
 
-| Question ID | Date Logged | Domain | Question Description | Impacted Agent | Status | Resolution |
-|---|---|---|---|---|---|---|
-| `Q-001` | 2026-11-02 | General | What is the client's preferred authentication strategy (JWT cookie vs Bearer token vs OAuth)? | `edith`, `friday` | `OPEN` | Pending user input in README.md |
-| `Q-002` | 2026-11-02 | Mobile | Is a mobile application required for this project? | `thor` | `OPEN` | If N/A, Thor remains idle |
-| `Q-003` | 2026-11-02 | Deployment | Target production hosting environment (VPS vs AWS vs Railway/Vercel)? | `ultron` | `OPEN` | Pending decision |
+| ID | Topic / Feature | Question for Client / Developer | Impact on Development | Status | Resolution |
+|---|---|---|---|---|---|
+| - | - | No open questions recorded yet. Run `npm run inputs` during `TASK-001`. | - | - | - |
 
 ---
 
-## Resolved Questions Log
-*(Move resolved items here with date and confirmed decision)*
+## Resolved Questions Archive
+
+| ID | Topic | Question | Final Resolution (Client Confirmed) | Date Resolved |
+|---|---|---|---|---|
+| - | - | - | - | - |

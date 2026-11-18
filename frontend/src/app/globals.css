@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Actovara design tokens (PRD §8.2) — keep in sync with tailwind.config.ts */
+:root {
+  --sidebar: #0f223d;
+  --sidebar-text: #ffffff;
+  --sidebar-muted: #a9b6c8;
+  --brand-50: #e2edfb;
+  --brand-600: #1d58b0;
+  --brand-700: #174a94;
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --border: #e5e9ef;
+  --table-head: #f0f2f5;
+  --text: #0f172a;
+  --text-muted: #5b6576;
+  --green-50: #f1f9f0;
+  --green-100: #d6f2dc;
+  --green-600: #037d1b;
+  --amber-50: #fef7e8;
+  --amber-100: #feebbf;
+  --amber-600: #e59306;
+  --red-50: #fef0f0;
+  --red-100: #fcdadc;
+  --red-600: #d4050f;
+  --gauge-red: #e5484d;
+  --gauge-amber: #feb82e;
+  --gauge-green: #3ca03c;
+  --neutral-50: #f5f7fc;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
+  body {
+    @apply min-h-screen bg-canvas font-sans text-[15px] text-ink;
+    overflow-x: clip;
+  }
+}
+
+@layer components {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+  .control {
+    @apply block w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink shadow-card transition-colors placeholder:text-ink-subtle hover:border-ink-subtle/60 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/25 disabled:cursor-not-allowed disabled:bg-table-head disabled:text-ink-subtle;
+  }
+  .control-error {
+    @apply border-danger-600 focus:border-danger-600 focus:ring-danger-600/25;
+  }
+  .page-enter {
+    @apply animate-fade-up;
+  }
+  .stagger-children > * {
+    @apply animate-fade-up;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 45ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 90ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 135ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 180ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 225ms; }
+  .stagger-children > *:nth-child(n+7) { animation-delay: 250ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

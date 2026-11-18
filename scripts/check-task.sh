@@ -2,34 +2,35 @@
 set -euo pipefail
 
 TASK_ID="${1:-}"
-
-if [ -z "$TASK_ID" ]; then
-  echo "Usage: ./scripts/check-task.sh <TASK_ID>"
-  echo "Example: ./scripts/check-task.sh TASK-001"
-  exit 1
-fi
-
 TASK_FILE="planning/task.md"
+UPDATE_FILE="planning/updateplanning.md"
 
 if [ ! -f "$TASK_FILE" ]; then
   echo "Error: $TASK_FILE not found."
   exit 1
 fi
 
-echo "Inspecting $TASK_ID in $TASK_FILE..."
-
-# Search for the task in the markdown table
-grep -E "\|.*${TASK_ID}.*\|" "$TASK_FILE" || {
-  echo "Task $TASK_ID not found in active task table."
-  exit 1
-}
-
-GRANULAR_FILE="planning/tasks/${TASK_ID}.md"
-if [ -f "$GRANULAR_FILE" ]; then
+if [ -z "$TASK_ID" ]; then
+  echo "=========================================================="
+  echo "  EasyTemplate Task Status Dashboard"
+  echo "=========================================================="
+  if [ -f "$UPDATE_FILE" ]; then
+    grep "\*\*Active Task\*\*:" "$UPDATE_FILE" || true
+  fi
   echo ""
-  echo "📄 Found granular task specification: $GRANULAR_FILE"
-  echo "----------------------------------------------------------"
-  head -n 25 "$GRANULAR_FILE"
-  echo "----------------------------------------------------------"
+  echo "Task Board Summary:"
+  grep -E "^\|.*TASK-" "$TASK_FILE" || true
+  echo ""
+  echo "Tip: Run ./scripts/check-task.sh TASK-001 to view full task details."
+else
+  SPEC_FILE="planning/tasks/${TASK_ID}.md"
+  if [ -f "$SPEC_FILE" ]; then
+    echo "=========================================================="
+    echo "  Task Details: ${TASK_ID}"
+    echo "=========================================================="
+    cat "$SPEC_FILE"
+  else
+    echo "Task specification file not found: $SPEC_FILE"
+    exit 1
+  fi
 fi
-

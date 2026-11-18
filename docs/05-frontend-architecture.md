@@ -1,38 +1,48 @@
-# 05 — Frontend Architecture
+# 05 — Frontend Architecture (`docs/05-frontend-architecture.md`)
 
-> Owned and maintained by `friday`.
+> **Directory**: `frontend/`  
+> **Rules**: `frontend/AGENTS.md` & `frontend/DESIGN_GUIDELINES.md`
 
 ---
 
-## 1. Directory Structure (`development/frontend/`)
+## 1. Directory Structure (`frontend/`)
+
 ```text
-development/frontend/
+frontend/
+├── public/
+│   └── images/                        # Semantic Image Folder Architecture (Zero Placeholders)
+│       ├── hero/                      # Hero banners, landing covers
+│       ├── products/                  # Product/item cards & details
+│       ├── categories/                # Category tiles & style cards
+│       ├── gallery/                   # Portfolio & showcase photos
+│       ├── features/                  # Technical diagrams, swatches
+│       ├── anatomy/                   # Interactive cutaways & visualizers
+│       ├── showroom/                  # Facility, team, showroom photos
+│       └── slices/                    # Reference crops from Figma / Screenshots
 ├── src/
-│   ├── app/                    # Next.js App Router routes & layouts
-│   │   ├── (auth)/             # Login, Register, Forgot Password
-│   │   ├── (dashboard)/        # Protected app views
-│   │   ├── layout.tsx          # Root layout with theme & query providers
-│   │   └── page.tsx            # Landing or initial redirect
+│   ├── app/                           # Next.js 14 App Router
+│   │   ├── globals.css                # Tailwind & CSS Variable tokens
+│   │   ├── layout.tsx                 # Root shell (Navbar + Main + Footer)
+│   │   └── page.tsx                   # Home / Landing page
 │   ├── components/
-│   │   ├── ui/                 # Jarvis design primitives (Button, Input, Card)
-│   │   └── modules/            # Domain-specific components
-│   ├── hooks/                  # Custom React hooks
-│   ├── lib/                    # API client, utility functions, validators
-│   ├── store/                  # Zustand stores for client-only state
-│   └── styles/                 # globals.css with Jarvis CSS variables
-├── public/                     # Static assets
-└── package.json
+│   │   ├── ui/                        # 11 Reusable 6-State UI Primitives
+│   │   │   ├── Alert.tsx
+│   │   │   ├── Badge.tsx
+│   │   │   ├── Button.tsx
+│   │   │   ├── Card.tsx
+│   │   │   ├── Dialog.tsx
+│   │   │   ├── EmptyState.tsx
+│   │   │   ├── Input.tsx
+│   │   │   ├── Skeleton.tsx
+│   │   │   ├── SpecTable.tsx
+│   │   │   ├── Tabs.tsx
+│   │   │   ├── Textarea.tsx
+│   │   │   └── index.ts
+│   │   └── shared/                    # Navbar, Footer, Mobile Drawers
+│   ├── lib/
+│   │   └── utils.ts                   # cn() class merger & formatters
+│   └── services/
+│       └── api.ts                     # Centralized Axios client -> docs/08-api-contract.md
+├── DESIGN_GUIDELINES.md
+└── AGENTS.md
 ```
-
----
-
-## 2. State Management Strategy
-- **Server State**: Managed exclusively by **TanStack Query** (caching, deduplication, optimistic updates, background refetching).
-- **Client State**: Lightweight **Zustand** stores for transient UI states (sidebar collapse, active filters, modal states).
-- **Form State**: Managed via **React Hook Form** paired with **Zod** schema resolvers.
-
----
-
-## 3. API Communication Layer
-- Centralized Axios / Fetch wrapper with automatic Bearer token injection.
-- Global response interceptor for 401 unauthorized automatic logout.

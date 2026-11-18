@@ -1,30 +1,25 @@
-# Technical Documentation (`docs/`)
+# 📚 Technical Blueprints & System Contracts (`docs/`)
 
-> Maintained by the **Avengers Multi-Agent System** under the leadership of `iron_man`.
-
----
-
-## Documentation Index & Agent Ownership
-
-| # | Document | Primary Owner | Description & Scope |
-|---|---|---|---|
-| **01** | [01-requirements-analysis.md](01-requirements-analysis.md) | `iron_man` | Functional and non-functional requirements breakdown |
-| **02** | [02-system-architecture.md](02-system-architecture.md) | `iron_man` / `edith` | System architecture, component flow, and infrastructure topology |
-| **03** | [03-figma-analysis.md](03-figma-analysis.md) | `jarvis` | Screen inventory, layouts, breakpoints, and design references |
-| **04** | [04-design-system.md](04-design-system.md) | `jarvis` | Semantic color tokens, typography scale, and 6 UI states |
-| **05** | [05-frontend-architecture.md](05-frontend-architecture.md) | `friday` | Next.js App Router tree, components, state, and form strategy |
-| **06** | [06-backend-architecture.md](06-backend-architecture.md) | `edith` | NestJS modular architecture, services, guards, and middleware |
-| **07** | [07-database-design.md](07-database-design.md) | `edith` | PostgreSQL schema, Prisma models, relations, and indexes |
-| **08** | [08-api-contract.md](08-api-contract.md) | `edith` | REST endpoints, DTO schemas, status codes, and error formats |
-| **09** | [09-mobile-architecture.md](09-mobile-architecture.md) | `thor` | Flutter architecture, Riverpod/Bloc state, and mobile features |
-| **10** | [10-security-plan.md](10-security-plan.md) | `ultron` / `edith` | Authentication, authorization, rate limiting, and data protection |
-| **11** | [11-testing-strategy.md](11-testing-strategy.md) | `thanos` | Unit, integration, E2E testing matrix and verification gates |
-| **12** | [12-deployment-plan.md](12-deployment-plan.md) | `ultron` | Docker multi-stage builds, Nginx reverse proxy, CI/CD pipelines |
-| **13** | [13-acceptance-criteria.md](13-acceptance-criteria.md) | `thanos` | Feature-by-feature acceptance criteria and definition of done |
-| **14** | [14-implementation-roadmap.md](14-implementation-roadmap.md) | `iron_man` | Phased implementation milestones and dependency gates |
+This directory holds the modular technical blueprints (inspired by the `ai_framwork` contract architecture) alongside the root `PRD_AND_PLAN.md`. Each specialist task loads **only** the specific document it needs via `docs/context-map.md`, saving 85–90% of context tokens.
 
 ---
 
-## Context Guidance
-- [Context Map](context-map.md): Routing guide for picking minimal relevant context per task.
-- [AI Context Policy](ai-context-policy.md): Rules for keeping token consumption minimal.
+## 🗂️ Blueprint Index
+
+| Document | Purpose & Scope | Primary Domain |
+|---|---|---|
+| [`ai-context-policy.md`](ai-context-policy.md) | Rules for minimal token loading and progressive context disclosure | All Tasks |
+| [`context-map.md`](context-map.md) | Task-to-Context routing table | All Tasks |
+| [`01-requirements-analysis.md`](01-requirements-analysis.md) | Synthesized requirements from PDF brief, Telegram chat, and Figma | Planning |
+| [`02-system-architecture.md`](02-system-architecture.md) | High-level system architecture, user flowcharts, and sequence diagrams | Architecture |
+| [`03-figma-analysis.md`](03-figma-analysis.md) | Figma URLs/frames, Auto-Layout breakdown, and Screenshot screen inventory | Figma & UI/UX |
+| [`04-design-system.md`](04-design-system.md) | Semantic CSS variables, typography, WCAG 2.2 AA contrast, and 6 UI states | Design System |
+| [`05-frontend-architecture.md`](05-frontend-architecture.md) | Next.js 14 App Router tree, UI primitives, state, and semantic image folders | Frontend |
+| [`06-backend-architecture.md`](06-backend-architecture.md) | **Universal Backend Architecture** (Express+Mongoose, Express+Prisma, NestJS, FastAPI, etc.) | Backend |
+| [`07-database-design.md`](07-database-design.md) | Visual Mermaid ERD + Mongoose ODM & Prisma SQL schema blueprints | Database |
+| [`08-api-contract.md`](08-api-contract.md) | **Frontend-Backend Bridge**: REST endpoints, payloads, and `sendResponse` envelope | Full-Stack |
+| [`09-error-handling-and-logging.md`](09-error-handling-and-logging.md) | Unified error envelopes, HTTP status semantics, and frontend error propagation | Full-Stack |
+| [`10-security-plan.md`](10-security-plan.md) | Authentication, RBAC guards, input validation, and CORS hardening | Security |
+| [`11-testing-strategy.md`](11-testing-strategy.md) | Build verification gates, contract validation, and asset auditing | QA |
+| [`12-deployment-and-devops.md`](12-deployment-and-devops.md) | Production environment variables, cloud deployment, and CI/CD workflow | DevOps |
+| [`13-acceptance-criteria.md`](13-acceptance-criteria.md) | Definition of Done (6 UI states, Figma/Screenshot fidelity, 0 build errors) | Handover |

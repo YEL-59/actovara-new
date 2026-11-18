@@ -1,20 +1,36 @@
-name: Avengers CI Pipeline
+name: EasyTemplate CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
-  validate:
-    name: Validate Template & Contracts
+  build-test-validate:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Make scripts executable
-        run: chmod +x scripts/*.sh
-      - name: Run Project Validation
-        run: ./scripts/validate-project.sh
-      - name: Run API Contract Validation
-        run: ./scripts/validate-contracts.sh
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (Root, Backend, Frontend)
+        run: npm run install:all
+
+      - name: Lint Backend & Frontend
+        run: npm run lint
+
+      - name: Run Backend API & Security Smoke Tests
+        run: npm test --prefix backend
+
+      - name: Run Full-Stack Project & Contract Validation
+        run: |
+          chmod +x scripts/validate-contracts.sh scripts/validate-project.sh
+          ./scripts/validate-contracts.sh
+          ./scripts/validate-project.sh

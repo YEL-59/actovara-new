@@ -1,34 +1,38 @@
 ---
 name: api-contract-validation
-description: Workflow for validating API request and response contracts between Edith (backend) and Friday/Thor (frontend/mobile).
+description: Workflow for validating and synchronizing REST API request/response contracts between the backend (any stack) and the Next.js frontend via docs/08-api-contract.md.
 ---
 
 # API Contract Validation Workflow
 
 ## Purpose
-Ensure that frontend client calls and backend endpoint definitions remain strictly synchronized through `docs/08-api-contract.md`, avoiding integration defects and silent assumptions.
+Ensure that Next.js frontend API calls (`frontend/src/services/`) and backend endpoint definitions (`backend/src/modules/`) remain 100% synchronized through `docs/08-api-contract.md`.
 
 ## Contract Structure Standard
-For every endpoint documented in `docs/08-api-contract.md`:
-1. **Method & Path**: `POST /api/v1/auth/login`
-2. **Auth & Permissions**: `Public` or `Bearer JWT` (Role: `Admin`, `Member`)
-3. **Request Headers & Query Params**: `page=1&limit=20&sort=desc`
-4. **Request Body Schema**: Strict JSON/TypeScript representation
-5. **Success Response (2xx)**: HTTP code and JSON payload shape
-6. **Error Responses (4xx, 5xx)**: Standard error format:
+Every endpoint in `docs/08-api-contract.md` must specify:
+1. **Method & Path**: e.g. `POST /api/v1/auth/login` or `GET /api/products`
+2. **Auth & Roles**: `Public` or `Bearer JWT` (Roles: `admin`, `user`, etc.)
+3. **Query Parameters**: `?page=1&limit=20&sortBy=createdAt&sortOrder=desc`
+4. **Request Body Schema**: Strict JSON / TypeScript representation
+5. **Standardized Success Response (2xx)**:
    ```json
    {
-     "statusCode": 400,
+     "success": true,
+     "statusCode": 200,
+     "message": "Resource fetched successfully",
+     "data": {}
+   }
+   ```
+6. **Standardized Error Response (4xx / 5xx)**:
+   ```json
+   {
+     "success": false,
      "message": "Validation failed",
-     "errors": ["email must be an email"]
+     "errorSources": [
+       { "path": "email", "message": "Invalid email address" }
+     ]
    }
    ```
 
-## Contract Change Procedure
-1. **Change Initiation**: Identify the need for a modified or new endpoint.
-2. **Contract Update**: Edith updates `docs/08-api-contract.md`.
-3. **Notification**: Edith notes the update in `planning/updateplanning.md`.
-4. **Implementation**:
-   - Backend: Edith implements NestJS controller and DTO.
-   - Frontend/Mobile: Friday or Thor implements TanStack Query / Dio client call matching the contract.
-5. **Validation**: Run script `./scripts/validate-contracts.sh` or integration tests.
+## Validation Procedure
+Run `./scripts/validate-contracts.ps1` (Windows) or `./scripts/validate-contracts.sh` (Linux/Mac) or `npm run validate-contracts` to verify `docs/08-api-contract.md`.
