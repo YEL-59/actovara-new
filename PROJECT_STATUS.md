@@ -6,7 +6,7 @@
 > **Execution Strategy**: `FRONTEND_FIRST` *(Supports `FIGMA_TO_FULLSTACK`, `BOTH_FULLSTACK`, `BACKEND_FIRST`)*  
 > **Active Backend Stack**: `NESTJS_PRISMA_POSTGRES` *(Implemented: `EXPRESS_MONGOOSE`; Plan/Blueprint templates: `EXPRESS_PRISMA_POSTGRES`, `NESTJS_PRISMA_POSTGRES`, `FASTAPI_PYTHON`, `CUSTOM_ANY`)*  
 > **Language Preference**: `EN` *(Configurable via `npm run settings` or `settings.json`)*  
-> **Last Checkpoint**: `2026-11-18 10:05` (Local Time)  
+> **Last Checkpoint**: `2026-11-19` (Local Time) — Client revision: action verify/close from the Actions tab (see planning/MEMORY.md)  
 
 ---
 

@@ -71,3 +71,13 @@
 - `GET /api/orders/:id` — Retrieve order by `_id` or `orderNumber` (`Order`, Auth Required; non-owners get 404).
 - `POST /api/orders` — Create order with calculated line-item subtotals (`{ items: [{ itemId, quantity }] }` -> `Order`, Auth Required). Owner is taken from the token; status is always `PENDING`.
 - `PATCH /api/orders/:id/status` — Update order fulfillment status (`{ status }` -> `Order`, Admin Protected).
+
+### 2.6 Actovara — Corrective Action Lifecycle (`actions`)
+> Mirrors `frontend/src/services/actions.service.ts` (mock implementation). Workflow: `open → in_progress → awaiting_verification → closed`, with `closed → in_progress` on reopen.
+- `GET /api/actions` — List (`?propertyId=&status=&priority=&ownerId=&overdue=&search=&sort=due|priority|created&page=&limit=` -> `[ ActionView... ]` + `meta`). `ActionView` = `Action` + `propertyName`, `ownerName`, `verifiedByName?` (closed actions: name of the Org Admin in `closure.verifiedBy`).
+- `GET /api/actions/:id` — `{ action: ActionView, updates: ActionUpdate[], evidence: Evidence[] }`.
+- `POST /api/actions/:id/evidence` — Multipart upload (`file`, `description`) -> `Evidence` (`action.write`; 409 if closed).
+- `POST /api/actions/:id/request-verification` — `{ note? }` -> `Action` (`action.write`; 409 unless open/in progress and at least one non-rejected evidence item).
+- `POST /api/actions/:id/verify` — `{ decision: 'accept' | 'request_more', summary?, reason?, acceptedEvidenceIds[] }` -> `Action` (`action.verify`, Org Admin only; 409 unless awaiting verification). `accept` requires `summary` + ≥1 accepted evidence and records `closure { verifiedBy, verifiedAt, summary }`; `request_more` requires `reason` and returns the action to `in_progress`.
+- `POST /api/actions/:id/reopen` — `{ reason }` -> `Action` (`action.verify`; 409 unless closed). Clears `closure`, increments `reopenCount`, status `in_progress`.
+- Every transition writes an `ActionUpdate` (timeline, with `fromStatus`/`toStatus`, author and reason) and an audit-log entry.

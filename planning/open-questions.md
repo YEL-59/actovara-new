@@ -8,7 +8,8 @@
 
 | ID | Topic / Feature | Question for Client / Developer | Impact on Development | Status | Resolution |
 |---|---|---|---|---|---|
-| - | - | No open questions recorded yet. Run `npm run inputs` during `TASK-001`. | - | - | - |
+| Q-P2-01 | Phase 2: mobile site inspections | Client (19 Nov) asked whether inspections (checklists, findings, photos, create actions, property history) fit Phase 2, starting with mobile-responsive web. Not requested for MVP. Needs Phase 2 scope + estimate; offline support TBD. | None for MVP; future module (InspectionTemplate, Inspection, Finding → Action) | Backlog | Architecture fit confirmed in reply draft 2026-11-19 |
+| Q-BUD-01 | Budget/timeline confirmation | Client asked to confirm all updates stay within the fixed budget and timeline. | Commercial; developer must confirm | Open (Jannatul) | - |
 
 ---
 

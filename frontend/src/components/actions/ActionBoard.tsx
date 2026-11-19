@@ -7,10 +7,12 @@ import { formatDate } from '@/lib/format';
 import { actionStatusMeta } from '@/lib/status';
 import { cn } from '@/lib/utils';
 import type { ActionStatus, ActionView } from '@/types/domain';
+import { ActionQuickActions } from './ActionQuickActions';
+import { VerifiedMeta } from './ActionTable';
 
 const COLUMNS: ActionStatus[] = ['open', 'in_progress', 'awaiting_verification', 'closed'];
 
-export function ActionBoard({ rows }: { rows: ActionView[] }) {
+export function ActionBoard({ rows, onChanged }: { rows: ActionView[]; onChanged?: () => void }) {
   return (
     <div className="stagger-children grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {COLUMNS.map((status) => {
@@ -31,17 +33,21 @@ export function ActionBoard({ rows }: { rows: ActionView[] }) {
             ) : (
               <ul className="space-y-2.5">
                 {items.map((a) => (
-                  <li key={a._id}>
-                    <Link
-                      href={`/actions/${a._id}`}
-                      className="focus-ring block rounded-xl border border-line bg-surface p-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover"
-                    >
-                      <div className="flex items-center justify-between gap-2">
+                  <li key={a._id} className="rounded-xl border border-line bg-surface p-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span className="text-meta font-semibold text-ink-muted">{a.reference}</span>
                         <StatusPill kind="priority" value={a.priority} />
                       </div>
-                      <p className="mt-1.5 line-clamp-2 text-sm font-semibold text-ink">{a.title}</p>
+                      <ActionQuickActions action={a} onChanged={onChanged} showPrimaryVerify={false} />
+                    </div>
+                    <Link
+                      href={`/actions/${a._id}`}
+                      className="focus-ring mt-1.5 block rounded-md"
+                    >
+                      <p className="line-clamp-2 text-sm font-semibold text-ink hover:text-brand-600">{a.title}</p>
                       <p className="mt-1 truncate text-meta text-ink-muted">{a.propertyName}</p>
+                      <VerifiedMeta action={a} className="mt-1.5" />
                       <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-2 text-meta">
                         <span className="truncate text-ink-muted">{a.ownerName}</span>
                         <span className={cn('inline-flex items-center gap-1 whitespace-nowrap font-medium', a.isOverdue ? 'text-danger-700' : 'text-ink-muted')}>

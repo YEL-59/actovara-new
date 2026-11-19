@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   ArrowLeft,
   CalendarClock,
@@ -45,7 +45,7 @@ import { formatDate, formatDateTime, formatFileSize, formatRelativeDue } from '@
 import { useSession } from '@/lib/session-mock';
 import { actionStatusMeta, type Tone } from '@/lib/status';
 import { cn } from '@/lib/utils';
-import { actionsService, teamService } from '@/services';
+import { actionsService } from '@/services';
 import type { ActionUpdate, ActionUpdateType, Evidence } from '@/types/domain';
 
 type DialogKind = 'note' | 'evidence' | 'request_verify' | 'verify' | 'reopen' | 'due_date' | 'reassign' | null;
@@ -85,21 +85,13 @@ function updateTitle(u: ActionUpdate): React.ReactNode {
 export default function ActionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? '';
-  const { can } = useSession();
+  const { can, switchRole } = useSession();
   const canWrite = can('action.write');
   const canVerify = can('action.verify');
 
   const [dialog, setDialog] = useState<DialogKind>(null);
 
   const detail = useApi(() => actionsService.get(id), [id]);
-  const assignees = useApi(() => teamService.assignees(), []);
-
-  const userMap = useMemo(() => {
-    const m = new Map<string, string>();
-    (assignees.data ?? []).forEach((u) => m.set(u._id, u.name));
-    return m;
-  }, [assignees.data]);
-
   if (detail.loading && !detail.data) {
     return <ActionDetailSkeleton />;
   }
@@ -143,7 +135,7 @@ export default function ActionDetailPage() {
   const isClosed = action.status === 'closed';
   const validEvidence = evidence.filter((e) => e.status !== 'rejected');
   const canRequestVerification = canWrite && (action.status === 'open' || action.status === 'in_progress');
-  const verifiedByName = action.closure ? userMap.get(action.closure.verifiedBy) ?? 'Org Admin' : '';
+  const verifiedByName = action.verifiedByName ?? 'Org Admin';
 
   const timelineItems: TimelineItem[] = updates.map((u) => {
     const meta = UPDATE_META[u.type];
@@ -360,11 +352,18 @@ export default function ActionDetailPage() {
                         leftIcon={<ShieldCheck className="h-4 w-4" />}
                         onClick={() => setDialog('verify')}
                       >
-                        Verify or request more
+                        Review evidence &amp; close
                       </Button>
                     ) : (
                       <Alert tone="warning" title="Awaiting verification">
-                        An Org Admin must verify the evidence to close this action.
+                        An Org Admin must review the evidence, then verify and close this action or request more evidence.
+                        <button
+                          type="button"
+                          onClick={() => switchRole('org_admin')}
+                          className="focus-ring mt-2 block rounded text-sm font-semibold text-brand-600 hover:underline"
+                        >
+                          Demo: switch to the Org Admin role to verify
+                        </button>
                       </Alert>
                     )
                   )}

@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   List,
   Search,
+  ShieldCheck,
   SquareCheck,
   SquarePlus,
   TriangleAlert,
@@ -75,6 +76,7 @@ function ActionsContent() {
   const searchParams = useSearchParams();
   const { can } = useSession();
   const canCreate = can('action.write');
+  const canVerify = can('action.verify');
 
   const search = searchParams.get('search') ?? '';
   const status = pick(searchParams.get('status'), STATUS_OPTIONS) as ActionStatus | 'not_closed' | '';
@@ -166,6 +168,11 @@ function ActionsContent() {
   const rows = list.data ?? [];
   const hasFilters = Boolean(search || status || priority || propertyId || ownerId || overdueOnly);
 
+  const reloadAll = () => {
+    list.reload();
+    summary.reload();
+  };
+
   const clearFilters = () => {
     setSearchInput('');
     updateQuery({ search: null, status: null, priority: null, propertyId: null, ownerId: null, overdue: null });
@@ -179,7 +186,7 @@ function ActionsContent() {
     <div className="space-y-6">
       <PageHeader
         title="Actions"
-        description="Remedial actions from inspections and reports"
+        description="Open → In Progress → Awaiting Verification → Closed (Org Admin verification with evidence & audit trail)"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl<ViewMode>
@@ -199,6 +206,24 @@ function ActionsContent() {
           </div>
         }
       />
+
+      {/* Org Admin verification queue */}
+      {canVerify && kpiAwaiting > 0 && status !== 'awaiting_verification' && (
+        <div className="flex flex-col gap-3 rounded-xl border border-warn-100 bg-warn-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-warn-600" aria-hidden />
+            <div>
+              <p className="text-[15px] font-semibold text-ink">
+                {kpiAwaiting} action{kpiAwaiting === 1 ? ' is' : 's are'} awaiting your verification
+              </p>
+              <p className="text-sm text-ink-muted">Review the completion evidence, then verify and close, or request more evidence.</p>
+            </div>
+          </div>
+          <Button size="sm" className="shrink-0" onClick={() => updateQuery({ status: 'awaiting_verification', overdue: null })}>
+            Review now
+          </Button>
+        </div>
+      )}
 
       {/* KPI tiles (clickable filters) */}
       <div className="stagger-children grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -329,10 +354,10 @@ function ActionsContent() {
           }
         />
       ) : view === 'board' ? (
-        <ActionBoard rows={rows} />
+        <ActionBoard rows={rows} onChanged={reloadAll} />
       ) : (
         <>
-          <ActionTable rows={rows} />
+          <ActionTable rows={rows} onChanged={reloadAll} />
           {list.meta && list.meta.totalPage > 1 && (
             <Pagination
               page={list.meta.page}
@@ -348,10 +373,7 @@ function ActionsContent() {
       <ActionFormModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => {
-          list.reload();
-          summary.reload();
-        }}
+        onCreated={reloadAll}
       />
     </div>
   );

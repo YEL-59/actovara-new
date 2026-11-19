@@ -285,29 +285,32 @@ export function VerifyActionModal({
   open,
   action,
   evidence,
+  initialDecision = 'accept',
   onClose,
   onDone,
 }: {
   open: boolean;
   action: ActionView;
   evidence: Evidence[];
+  /** Preselects the decision, e.g. when opened from "Request more evidence". */
+  initialDecision?: 'accept' | 'request_more';
   onClose: () => void;
   onDone: () => void;
 }) {
   const toast = useToast();
   const form = useModalForm(open);
-  const [decision, setDecision] = useState<'accept' | 'request_more'>('accept');
+  const [decision, setDecision] = useState<'accept' | 'request_more'>(initialDecision);
   const [summary, setSummary] = useState('');
   const [reason, setReason] = useState('');
   const [acceptedIds, setAcceptedIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
-    setDecision('accept');
+    setDecision(initialDecision);
     setSummary('');
     setReason('');
     setAcceptedIds(evidence.filter((e) => e.status !== 'rejected').map((e) => e._id));
-  }, [open, evidence]);
+  }, [open, evidence, initialDecision]);
 
   const toggleId = (id: string) => {
     setAcceptedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));

@@ -61,3 +61,15 @@ PROJECT_STATUS.md এবং planning/MEMORY.md (চেকপয়েন্ট: 
 ## Fix (2026-11-18): Sidebar detached when a modal/drawer opens
 - Cause: `useFocusTrap` set `body { overflow: hidden }`; with `html { overflow-x: clip }` the body became its own scroll container, so the sticky sidebar jumped to its unscrolled position (looked cut off on scrolled pages, e.g. /actions/act_011 "Upload evidence").
 - Fix: scroll lock moved to `<html>` with scrollbar-width padding compensation in `frontend/src/lib/hooks/useFocusTrap.ts`.
+
+## Client revision (2026-11-19): Sardip — closing corrective actions (MVP) + Phase 2 inspections question
+- Source: `inputs/modifications/telegram_chats/telegram_chat.txt`.
+- Finding: the verify/close/reopen flow already existed (`actions.service.ts` verify/reopen and the detail page), but only on the action record and only for Org Admin (`action.verify`). The Actions tab had no lifecycle controls.
+- Built:
+  - `frontend/src/components/actions/ActionQuickActions.tsx` (new): a ⋯ menu per row/card with Verify & close, Request more evidence, Request verification, Add progress note, Upload evidence, Reopen and Open record, depending on status and permission. It reuses the existing modals.
+  - `ActionTable.tsx` / `ActionBoard.tsx`: menu, `onChanged` reload, and `VerifiedMeta` ("Verified by X · date").
+  - `actions/page.tsx`: Org Admin banner "N awaiting your verification → Review now".
+  - `actions/[id]/page.tsx`: verifier name from `verifiedByName`; button renamed "Review evidence & close"; demo link to switch to Org Admin.
+  - `VerifyActionModal`: new `initialDecision` prop. `ActionView.verifiedByName` added (types + service mapper). `docs/08-api-contract.md` §2.6 documents the action lifecycle endpoints.
+- Phase 2 inspections: reply only, logged as Q-P2-01. Budget confirmation is Q-BUD-01 (Jannatul to confirm).
+- Reply draft: `inputs/client_comms/reply_2026-11-19_sardip.md`.

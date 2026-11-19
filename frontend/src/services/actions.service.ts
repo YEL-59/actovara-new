@@ -38,6 +38,7 @@ const view = (db: MockDb, a: Action): ActionView => ({
   ...a,
   propertyName: db.properties.find((p) => p._id === a.propertyId)?.name ?? '—',
   ownerName: db.users.find((u) => u._id === a.ownerId)?.name ?? '—',
+  verifiedByName: a.closure ? db.users.find((u) => u._id === a.closure!.verifiedBy)?.name ?? 'Org Admin' : undefined,
 });
 
 const findAction = (db: MockDb, id: string) => db.actions.find((a) => a._id === id) ?? notFound('Action');

@@ -400,6 +400,8 @@ export interface SignedFileUrl {
 export interface ActionView extends Action {
   propertyName: string;
   ownerName: string;
+  /** Name of the Org Admin who verified and closed the action (closed actions only). */
+  verifiedByName?: string;
 }
 
 export interface ActionDetail {

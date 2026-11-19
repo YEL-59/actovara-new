@@ -1,17 +1,31 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, TriangleAlert } from 'lucide-react';
+import { ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Badge, StatusPill, Table, TBody, TD, TH, THead, TR } from '@/components/ui';
 import { formatDate, formatRelativeDue } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { ActionView } from '@/types/domain';
+import { ActionQuickActions } from './ActionQuickActions';
 
 export interface ActionTableProps {
   rows: ActionView[];
+  /** Called after a lifecycle step (verify, reopen, …) so the page can reload. */
+  onChanged?: () => void;
 }
 
-export function ActionTable({ rows }: ActionTableProps) {
+/** "Verified by … · date" line for closed actions — the approver and date the client asked to see. */
+export function VerifiedMeta({ action, className }: { action: ActionView; className?: string }) {
+  if (action.status !== 'closed' || !action.closure) return null;
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-meta text-ok-700', className)}>
+      <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      Verified by {action.verifiedByName ?? 'Org Admin'} · {formatDate(action.closure.verifiedAt)}
+    </span>
+  );
+}
+
+export function ActionTable({ rows, onChanged }: ActionTableProps) {
   return (
     <>
       {/* Mobile stacked cards (<640px) */}
@@ -25,9 +39,13 @@ export function ActionTable({ rows }: ActionTableProps) {
                   {a.title}
                 </Link>
               </div>
-              <StatusPill kind="action" value={a.status} />
+              <div className="flex shrink-0 items-center gap-1">
+                <StatusPill kind="action" value={a.status} />
+                <ActionQuickActions action={a} onChanged={onChanged} showPrimaryVerify={false} />
+              </div>
             </div>
             <p className="mt-1.5 text-sm text-ink-muted">{a.propertyName}</p>
+            <VerifiedMeta action={a} className="mt-1" />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill kind="priority" value={a.priority} />
@@ -57,7 +75,7 @@ export function ActionTable({ rows }: ActionTableProps) {
               <TH>Due date</TH>
               <TH>Status</TH>
               <TH className="w-12 text-right">
-                <span className="sr-only">Open</span>
+                <span className="sr-only">Row actions</span>
               </TH>
             </tr>
           </THead>
@@ -93,15 +111,10 @@ export function ActionTable({ rows }: ActionTableProps) {
                 </TD>
                 <TD>
                   <StatusPill kind="action" value={a.status} variant="dot" />
+                  <VerifiedMeta action={a} className="mt-1 flex whitespace-nowrap" />
                 </TD>
                 <TD className="text-right">
-                  <Link
-                    href={`/actions/${a._id}`}
-                    aria-label={`Open ${a.reference}`}
-                    className="focus-ring inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-subtle hover:bg-table-head hover:text-brand-600"
-                  >
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                  </Link>
+                  <ActionQuickActions action={a} onChanged={onChanged} />
                 </TD>
               </TR>
             ))}
