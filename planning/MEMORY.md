@@ -8,7 +8,7 @@
 *This section is automatically updated at the end of every prompt/task.*
 
 - **Project Name**: Actovara — Know. Act. Prove. (Compliance & Action Management Platform)
-- **Last Active Session**: 2026-11-18 10:05
+- **Last Active Session**: 2026-11-24 (client revision TASK-MOD-001)
 - **Overall Progress**: `17% (1/6 Tasks Completed — TASK-004 Frontend Aligned & Verified; TASK-001 Ready for PostgreSQL ERD/API Gate)`
 - **Language Preference**: `EN` *(Configurable via `npm run settings` or `settings.json`: `en` or `bn`)*
 - **Current Execution Strategy**: `FRONTEND_FIRST` *(Supports `FIGMA_TO_FULLSTACK`, `BOTH_FULLSTACK`, `BACKEND_FIRST`)*
@@ -73,3 +73,18 @@ PROJECT_STATUS.md এবং planning/MEMORY.md (চেকপয়েন্ট: 
   - `VerifyActionModal`: new `initialDecision` prop. `ActionView.verifiedByName` added (types + service mapper). `docs/08-api-contract.md` §2.6 documents the action lifecycle endpoints.
 - Phase 2 inspections: reply only, logged as Q-P2-01. Budget confirmation is Q-BUD-01 (Jannatul to confirm).
 - Reply draft: `inputs/client_comms/reply_2026-11-19_sardip.md`.
+
+## Client revision (2026-11-24): Sardip — close actions by confirmation + custom document types
+- Source: `inputs/modifications/telegram_chats/telegram_chat.txt`. Spec: `planning/tasks/TASK-MOD-001.md`. Contract: `docs/08-api-contract.md` §2.6 (updated), §2.7 (new).
+- **Actions:** `Action.evidenceRequired` + `Action.completion { method: evidence|confirmation, note, completedBy, completedAt }`. "Submit for verification" (renamed from "Request verification") offers *With evidence* / *By confirmation*. A completion note is required for both. Org Admin verification is unchanged, but evidence is only required to accept when the completion was with evidence. Only an Org Admin can change `evidenceRequired`; request-more can set it.
+- **Document types:** `ComplianceType.affectsRag` (default true) excludes a type from RAG, counts, nextDue, gauges, dashboard urgent/overdue and report counts. Expiry mode is derived in `frontend/src/lib/documents.ts` (renewal / on_upload = `storeOnly:false` + months `null` / none). Creating or widening a type now attaches it to existing properties (previous gap). Category is free text. The Settings tab is renamed "Document Types" (route unchanged).
+- **Seed:** `MOCK_DB_VERSION` 6 (resets browser demo data). Org types INS (insurance, expiry on upload, not in RAG; expired at Elm House, which stays green) and TDP (store only, not in RAG). ACT-0031 is closed by confirmation, ACT-0032 is awaiting verification by confirmation. Urgent seeded actions require evidence.
+- Touched: `types/domain.ts`, `lib/documents.ts` (new), `mocks/{engine,seed,helpers}.ts`, `services/{actions,certificates,dashboard,imports,reports}.service.ts`, `components/actions/{ActionLifecycleModals,ActionQuickActions,ActionFormModal,ActionTable}.tsx`, `app/(app)/actions/[id]/page.tsx`, `components/settings/{ComplianceTypeModal,SettingsNav}.tsx`, `app/(app)/settings/{compliance-types/page,layout}.tsx`, `components/property-detail/RegisterTab.tsx`, `components/certificates/CertificateUploadModal.tsx`, `components/reports/ReportSheet.tsx`.
+- Budget: Q-BUD-02 (Jannatul to confirm). Reply draft: `inputs/client_comms/reply_2026-11-24_sardip.md`.
+- Verification: `tsc --noEmit` 0 errors; `npm run build --prefix frontend` passed (20/20 pages). Backend gate not run (no node_modules, backend on hold, untouched).
+
+## SECURITY (2026-11-24): origin/main compromised — push halted
+- `git fetch` showed origin/main force-updated to `3f1409f`. It forges the 19 Nov commit (same author, message and date) but adds obfuscated JS after a long run of tabs in `frontend/postcss.config.js`, new `init`/`frontend/init`/`backend/init` files, and `node init &&` in the dev/build scripts.
+- The initial commit `e7e4060` already contained `.vscode/tasks.json` (hidden, `runOn: folderOpen`, running `node .vscode/ini`, an obfuscated payload) and `.vscode/settings.json` with `task.allowAutomaticTasks: true`. The local working tree had already been cleaned (19 Nov 14:31) but the cleanup was not committed.
+- The local working tree was scanned and is clean: no `init` files, no `node init`, no obfuscated code outside node_modules, no git hooks.
+- **Do NOT `git pull` or merge origin/main.** Nothing was pushed. Next steps (developer): rotate GitHub credentials and scan the machine, then commit the clean tree and overwrite the remote, then protect the branch.

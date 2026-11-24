@@ -21,6 +21,7 @@ export function VerifiedMeta({ action, className }: { action: ActionView; classN
     <span className={cn('inline-flex items-center gap-1 text-meta text-ok-700', className)}>
       <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
       Verified by {action.verifiedByName ?? 'Org Admin'} · {formatDate(action.closure.verifiedAt)}
+      {action.completion?.method === 'confirmation' && ' · by confirmation'}
     </span>
   );
 }

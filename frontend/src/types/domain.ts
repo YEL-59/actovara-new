@@ -5,6 +5,13 @@ export type RequirementStatus = 'valid' | 'due_soon' | 'overdue' | 'missing' | '
 export type Rag = 'green' | 'amber' | 'red';
 export type ActionStatus = 'open' | 'in_progress' | 'awaiting_verification' | 'closed';
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
+/** How the owner completed an action before submitting it for verification. */
+export type CompletionMethod = 'evidence' | 'confirmation';
+/**
+ * Derived from `storeOnly` + `defaultRenewalMonths` (see `expiryMode()` in `lib/documents.ts`):
+ * renewal = fixed cycle, expiry calculated from the issue date · on_upload = expiry date typed in on upload · none = store only.
+ */
+export type ExpiryMode = 'renewal' | 'on_upload' | 'none';
 
 export interface Address {
   line1: string;
@@ -48,8 +55,12 @@ export interface ComplianceType {
   code: string;
   category: string;
   applicableTo: PropertyType[];
+  /** Renewal cycle used to calculate expiry. `null` with `storeOnly: false` = the expiry date is entered on upload. */
   defaultRenewalMonths: number | null;
+  /** No expiry date and no reminders: the document is just kept on file. */
   storeOnly: boolean;
+  /** When false the document is tracked and stored but never changes the property's RAG status, counts or gauges. */
+  affectsRag: boolean;
   legislationRefs: { version: number; text: string; effectiveFrom: string; editedBy: string }[];
   sortOrder: number;
   active: boolean;
@@ -98,6 +109,10 @@ export interface Action {
   dueDate: string;
   status: ActionStatus;
   isOverdue: boolean;
+  /** When true the owner must attach evidence; otherwise a written completion note is enough. */
+  evidenceRequired: boolean;
+  /** Latest submission for verification: who completed the work, how, and their note. Cleared on reopen or return. */
+  completion?: { method: CompletionMethod; note: string; completedBy: string; completedAt: string };
   closure?: { verifiedBy: string; verifiedAt: string; summary: string };
   reopenCount: number;
   createdAt: string;
@@ -167,6 +182,8 @@ export interface ActionUpdate {
   author: { _id: string; name: string };
   type: ActionUpdateType;
   body?: string;
+  /** Set on `verification_requested` entries. */
+  completionMethod?: CompletionMethod;
   fromStatus?: ActionStatus;
   toStatus?: ActionStatus;
   createdAt: string;
@@ -219,6 +236,8 @@ export interface ReportSnapshotData {
     category: string;
     status: RequirementStatus;
     isApplicable: boolean;
+    /** False for document types that are stored without affecting the RAG status. */
+    affectsRag: boolean;
     expiryDate?: string;
     currentCertificateName?: string;
     currentCertificateVersion?: number;
@@ -241,6 +260,9 @@ export interface ReportSnapshotData {
     dueDate: string;
     ownerName: string;
     evidenceRefs: string[];
+    completionMethod?: CompletionMethod;
+    completionNote?: string;
+    completedByName?: string;
     closureSummary?: string;
     closedAt?: string;
   }>;
@@ -402,6 +424,8 @@ export interface ActionView extends Action {
   ownerName: string;
   /** Name of the Org Admin who verified and closed the action (closed actions only). */
   verifiedByName?: string;
+  /** Name of the person who submitted the completion (`completion.completedBy`). */
+  completedByName?: string;
 }
 
 export interface ActionDetail {

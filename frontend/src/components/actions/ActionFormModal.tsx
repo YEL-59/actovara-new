@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Alert, Button, DatePicker, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
+import { Alert, Button, Checkbox, DatePicker, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
 import { useSession } from '@/lib/session-mock';
 import { actionsService, certificatesService, errorMessage, isApiError, propertiesService, teamService } from '@/services';
 import type { Action, Priority, Property, User } from '@/types/domain';
@@ -55,6 +55,7 @@ export function ActionFormModal({
   const [ownerId, setOwnerId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [certificateId, setCertificateId] = useState('');
+  const [evidenceRequired, setEvidenceRequired] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,7 @@ export function ActionFormModal({
     setOwnerId(user?._id ?? '');
     setDueDate('');
     setCertificateId(defaultCertificateId ?? '');
+    setEvidenceRequired(false);
     setErrors({});
     setFormError(null);
     teamService
@@ -130,6 +132,7 @@ export function ActionFormModal({
         priority,
         ownerId,
         dueDate,
+        evidenceRequired,
       });
       toast.success(res.message ?? 'Action created');
       onCreated?.(res.data);
@@ -217,6 +220,14 @@ export function ActionFormModal({
             options={[{ value: '', label: 'None' }, ...certificates.map((c) => ({ value: c._id, label: c.label }))]}
           />
         )}
+        <div className="rounded-xl border border-line bg-canvas p-3.5">
+          <Checkbox
+            label="Require evidence to close this action"
+            description="The owner must upload photos or documents. Leave unticked to let them close routine actions with a written completion note. Either way an Org Admin verifies it."
+            checked={evidenceRequired}
+            onChange={(e) => setEvidenceRequired(e.target.checked)}
+          />
+        </div>
       </form>
     </Modal>
   );

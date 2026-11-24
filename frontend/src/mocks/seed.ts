@@ -28,7 +28,7 @@ import { buildReportSnapshot } from './helpers';
 import { addMonths, daysFrom, prng, yyyymmdd } from './time';
 import type { MockDb } from './types';
 
-export const MOCK_DB_VERSION = 5;
+export const MOCK_DB_VERSION = 6;
 
 /**
  * Fixed public tokens for the seeded landlord links, so the demo can open `/share/<token>`.
@@ -115,7 +115,19 @@ const PROPERTY_SEEDS: PropertySeed[] = [
 ];
 
 /* --------------------------------- Actions -------------------------------- */
-type ActionSeed = [prop: number, title: string, code: string, source: Action['source'], sourceRef: string | null, priority: Priority, status: ActionStatus, dueOffset: number, owner: User];
+type ActionSeed = [
+  prop: number,
+  title: string,
+  code: string,
+  source: Action['source'],
+  sourceRef: string | null,
+  priority: Priority,
+  status: ActionStatus,
+  dueOffset: number,
+  owner: User,
+  /** Completed by written confirmation (no evidence). `{date}` becomes the completion date (dd/mm/yyyy). */
+  confirmation?: string,
+];
 const ACTION_SEEDS: ActionSeed[] = [
   [1, 'Replace self-closing device on Flat 3 fire door', 'FDI', 'report_finding', 'FDI item 3, p2', 'high', 'in_progress', 9, JAMES],
   [1, 'Install heat detector in shared kitchen', 'FRA', 'report_finding', 'FRA item 5.1, p9', 'urgent', 'open', -3, JAMES],
@@ -147,7 +159,12 @@ const ACTION_SEEDS: ActionSeed[] = [
   [6, 'Label gas isolation valve and update records', 'GAS', 'manual', null, 'low', 'closed', -120, JAMES],
   [7, 'Repair fire door ironmongery, Building 1', 'FDI', 'report_finding', 'FDI item 4, p2', 'medium', 'closed', -26, OLIVIA],
   [7, 'Install water temperature logger on hot-water return', 'LRA', 'report_finding', 'LRA recommendation 5', 'medium', 'closed', -80, OLIVIA],
+  // Routine actions completed by written confirmation (client request, 24 Nov 2026).
+  [0, 'Remove rubbish from storage area', 'FRA', 'manual', null, 'low', 'closed', -12, JAMES, 'Rubbish has been cleared from the storage area on {date}.'],
+  [3, 'Replace missing fire action notice in reception', 'FRA', 'manual', null, 'low', 'awaiting_verification', 4, JAMES, 'New fire action notice fitted in the ground-floor reception on {date}. Damaged notice removed.'],
 ];
+
+const ukDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 const CLOSURE_NOTES: Record<string, string> = {
   FRA: 'Contractor photos checked against the FRA finding. Item closed.',
@@ -201,6 +218,7 @@ export function buildSeed(now: Date = new Date()): MockDb {
     applicableTo,
     defaultRenewalMonths: months,
     storeOnly,
+    affectsRag: true,
     legislationRefs: [{ version: 1, text, effectiveFrom: d(-430), editedBy: 'Actovara Support' }],
     sortOrder: i + 1,
     active: true,
@@ -285,16 +303,67 @@ export function buildSeed(now: Date = new Date()): MockDb {
     }
   });
 
+  /*
+   * Organisation custom document types (client request, 24 Nov 2026). Stored against the property
+   * without affecting RAG: Elm House keeps a green RAG although its insurance policy has expired.
+   */
+  const customTypes: ComplianceType[] = [
+    { _id: 'ct_ins', orgId: ORG_ID, name: 'Buildings Insurance Policy', code: 'INS', category: 'Insurance', applicableTo: ALL, defaultRenewalMonths: null, storeOnly: false, affectsRag: false, legislationRefs: [], sortOrder: complianceTypes.length + 1, active: true },
+    {
+      _id: 'ct_tdp',
+      orgId: ORG_ID,
+      name: 'Tenancy Deposit Protection Certificate',
+      code: 'TDP',
+      category: 'Tenancy',
+      applicableTo: ['residential', 'hmo'],
+      defaultRenewalMonths: null,
+      storeOnly: true,
+      affectsRag: false,
+      legislationRefs: [{ version: 1, text: 'Housing Act 2004, sections 212 to 215 (tenancy deposit schemes)', effectiveFrom: d(-210), editedBy: ADMIN.name }],
+      sortOrder: complianceTypes.length + 2,
+      active: true,
+    },
+  ];
+  complianceTypes.push(...customTypes);
+  const TDP_UPLOADED = new Set(['prop_002', 'prop_005']);
+  properties.forEach((prop, pi) => {
+    for (const type of customTypes.filter((t) => t.applicableTo.includes(prop.type))) {
+      const reqId = `req_${prop._id.slice(5)}_${type.code.toLowerCase()}`;
+      const req: PropertyRequirement = { _id: reqId, propertyId: prop._id, complianceTypeId: type._id, applicability: 'applicable', status: 'missing' };
+      requirements.push(req);
+      if (type.code === 'TDP' && !TDP_UPLOADED.has(prop._id)) continue;
+      const issue = d(type.code === 'INS' ? (prop._id === 'prop_007' ? -375 : -200 + pi * 9) : -160 - pi * 11, 10);
+      const certId = `cert_${prop._id.slice(5)}_${type.code.toLowerCase()}_v1`;
+      certificates.push({
+        _id: certId,
+        propertyId: prop._id,
+        requirementId: reqId,
+        complianceTypeId: type._id,
+        version: 1,
+        isCurrent: true,
+        issueDate: issue,
+        expiryDate: type.storeOnly ? undefined : addMonths(issue, 12),
+        expiryCalculated: false,
+        file: { _id: `file_${certId}`, name: `${type.code}-${prop.reference}-${yyyymmdd(issue)}.pdf`, mimeType: 'application/pdf', sizeBytes: 320_000 + pi * 41_000, scanStatus: 'clean' },
+        notes: type.code === 'INS' ? 'Policy schedule from the insurer.' : undefined,
+        uploadedBy: ref(ADMIN),
+        createdAt: past(daysFrom(new Date(issue), 2), 60),
+      });
+      req.currentCertificateId = certId;
+    }
+  });
+
   /* Actions, updates, evidence */
   const actions: Action[] = [];
   const actionUpdates: ActionUpdate[] = [];
   const evidence: Evidence[] = [];
   const nowMs = now.getTime();
-  ACTION_SEEDS.forEach(([pi, title, code, source, sourceRef, priority, status, dueOffset, owner], i) => {
+  ACTION_SEEDS.forEach(([pi, title, code, source, sourceRef, priority, status, dueOffset, owner, confirmation], i) => {
     const prop = properties[pi]!;
     const id = `act_${String(i + 1).padStart(3, '0')}`;
     const dueDate = d(dueOffset, 17);
-    const createdAt = d(Math.min(dueOffset - between(25, 50), -5), 10);
+    // Confirmation seeds were appended later: a fixed offset keeps the random sequence (and older demo data) unchanged.
+    const createdAt = d(Math.min(dueOffset - (confirmation ? 30 : between(25, 50)), -5), 10);
     const cert = certificates.find((c) => c.propertyId === prop._id && c.isCurrent && c.complianceTypeId === `ct_${code.toLowerCase()}`);
     const start = Date.parse(createdAt);
     const end = Math.min(Date.parse(dueDate), nowMs - 3_600_000);
@@ -315,6 +384,8 @@ export function buildSeed(now: Date = new Date()): MockDb {
       dueDate,
       status,
       isOverdue: false,
+      // Demo default: urgent findings must be closed with evidence; everything else allows a written confirmation.
+      evidenceRequired: priority === 'urgent',
       reopenCount: reopened ? 1 : 0,
       createdAt,
       updatedAt: at(status === 'open' ? 0 : 0.9),
@@ -323,8 +394,14 @@ export function buildSeed(now: Date = new Date()): MockDb {
       actionUpdates.push({ _id: `upd_${id.slice(4)}_${actionUpdates.length}`, actionId: id, author: ref(author), type, body, fromStatus, toStatus, createdAt: at(f) });
 
     upd('created', 0, ADMIN, sourceRef ? `Created from ${sourceRef}.` : 'Created manually.');
-    if (status !== 'open') upd('status_change', 0.25, owner, 'Contractor booked. Work under way.', 'open', 'in_progress');
-    if (status === 'awaiting_verification' || status === 'closed') {
+    if (status !== 'open') upd('status_change', 0.25, owner, confirmation ? 'Arranged with the caretaker.' : 'Contractor booked. Work under way.', 'open', 'in_progress');
+    const submitted = status === 'awaiting_verification' || status === 'closed';
+    if (submitted && confirmation) {
+      const note = confirmation.replace('{date}', ukDate(at(0.8)));
+      action.completion = { method: 'confirmation', note, completedBy: owner._id, completedAt: at(0.8) };
+      upd('verification_requested', 0.8, owner, note, 'in_progress', 'awaiting_verification');
+      actionUpdates[actionUpdates.length - 1]!.completionMethod = 'confirmation';
+    } else if (submitted) {
       const files = [
         { name: 'photo-after-repair.jpg', mimeType: 'image/jpeg', desc: 'Photo of the completed work' },
         { name: 'contractor-job-sheet.pdf', mimeType: 'application/pdf', desc: 'Contractor job sheet' },
@@ -347,10 +424,15 @@ export function buildSeed(now: Date = new Date()): MockDb {
         upd('verification_requested', 0.65, owner, 'Work complete. Please verify.', 'in_progress', 'awaiting_verification');
         upd('reopened', 0.7, ADMIN, 'The door still does not close fully from 90°. Reopened for the contractor to adjust.', 'awaiting_verification', 'in_progress');
       }
-      upd('verification_requested', 0.8, owner, 'Work complete. Evidence attached for verification.', 'in_progress', 'awaiting_verification');
+      const note = 'Work complete. Evidence attached for verification.';
+      action.completion = { method: 'evidence', note, completedBy: owner._id, completedAt: at(0.8) };
+      upd('verification_requested', 0.8, owner, note, 'in_progress', 'awaiting_verification');
+      actionUpdates[actionUpdates.length - 1]!.completionMethod = 'evidence';
     }
     if (status === 'closed') {
-      const summary = CLOSURE_NOTES[code] ?? 'Evidence reviewed and accepted.';
+      const summary = confirmation
+        ? 'Confirmed with the caretaker on site. Routine item, no evidence needed.'
+        : CLOSURE_NOTES[code] ?? 'Evidence reviewed and accepted.';
       action.closure = { verifiedBy: ADMIN._id, verifiedAt: at(0.95), summary };
       upd('verified', 0.95, ADMIN, summary, 'awaiting_verification', 'closed');
     }
@@ -539,6 +621,12 @@ export function buildSeed(now: Date = new Date()): MockDb {
     before: { reminderThresholds: [60, 30, 7], dueSoonDays: 30 },
     after: { reminderThresholds: [90, 60, 30, 7, 0], dueSoonDays: 60 },
   });
+  for (const t of customTypes) {
+    const n = requirements.filter((r) => r.complianceTypeId === t._id).length;
+    audit(ADMIN, 'create', 'compliance_type', t._id, `Added document type ${t.name} and added to ${n} properties`, d(-210, 9), {
+      after: { code: t.code, category: t.category, defaultRenewalMonths: t.defaultRenewalMonths, storeOnly: t.storeOnly, affectsRag: t.affectsRag },
+    });
+  }
   audit(ADMIN, 'update', 'compliance_type', 'ct_fra', 'Updated Fire Risk Assessment legislation reference to v1', d(-12, 11), {
     before: { defaultRenewalMonths: 12, storeOnly: false },
     after: { defaultRenewalMonths: 12, storeOnly: false, legislationVersion: 1 },

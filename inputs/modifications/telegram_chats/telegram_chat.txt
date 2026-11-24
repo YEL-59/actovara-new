@@ -2,3 +2,113 @@
 # Both messages.html (Telegram Desktop native export) and telegram_chat.txt are supported.
 # Greetings and timestamps can stay; the AI will automatically filter the real revision requests.
 
+Hi Jannatul,
+
+Thank you for the latest update and for incorporating the changes from our frontend review checklist.
+
+I'm pleased with the progress, particularly the "Know. Act. Prove. dashboard", improved RAG indicators, compliance terminology and property photograph functionality. These improvements bring Actovara closer to its intended commercial proposition.
+
+I'm also happy that PostgreSQL has been confirmed for the production database.
+
+I'll continue reviewing the frontend against our agreed checklist before formal sign-off. I'd also like to retain the flexibility to finalise the logo before production launch.
+
+Please confirm that all updates remain within our agreed fixed development budget and timeline.
+
+Following my initial review, I have two additional points:
+
+1. Future Mobile App / Property Inspections
+
+I'd like to explore whether Actovara could eventually support mobile site inspections, allowing property managers to:
+
+- Select a property and complete inspection checklists.
+- Record findings and upload photographs.
+- Create corrective actions directly from inspections.
+- Assign responsibilities, priorities and deadlines.
+- Save inspection records against the property's history.
+
+I appreciate this is outside the current MVP scope and am not requesting additional development at this stage.
+
+However, could you advise whether our current architecture would support this in Phase 2, potentially starting with a mobile-responsive web application before developing a dedicated app?
+
+2. Closing Corrective Actions
+
+During my review, I couldn't close an action directly from the Actions tab.
+
+My understanding is that the workflow should be:
+
+Open → In Progress → Awaiting Verification → Closed
+
+An authorised Organisation Admin should be able to review completion evidence, verify and close an action, with the approver and date recorded.
+
+Ideally, this should be accessible from the Actions tab or the individual action record. There should also be an option to request further evidence or reopen an action with a recorded reason.
+
+Could you confirm whether this functionality is working and demonstrate the intended process?
+
+As corrective action verification is central to Actovara's Know. Act. Prove. approach, I consider this part of the existing MVP rather than an additional feature.
+
+Please let me know your thoughts on these points so we can complete the frontend review and progress to the next stage.
+
+Kind regards,  
+Sardip
+
+
+
+
+
+
+
+
+NOE CLIENT SEND A MESSAGE S Hi Jannatul,
+Thank you for your patience. I've had another opportunity to review the frontend this evening, and
+there are two areas I'd like you to consider before we finalise sign-off.
+1. Closing Corrective Actions Without Mandatory Evidence Uploads
+I've noticed that the current workflow requires evidence to be uploaded before an action can be
+submitted for verification and closed.
+I don't believe every action needs photographic or documentary evidence. Some straightforward
+actions should be capable of being closed with a written confirmation.
+For example: Action: Remove rubbish from storage area.
+Completion note: "Rubbish has been cleared from the storage area on 22/11/2026."
+The authorised user should then be able to submit the action for verification, with the Organisation
+Admin reviewing and closing it.
+Ideally, I'd like two options:
+- Completion with evidence: Upload photographs or documents, add completion notes and submit
+for verification.
+- Completion by confirmation: Enter a completion note without uploading evidence and submit for
+verification.
+Both options should retain the verification process and audit trail, recording who completed the
+action, who verified it and when.
+This would make the system more practical for property managers handling routine corrective
+actions, while allowing supporting evidence to be required where appropriate.
+
+2. Adding Custom Document Types
+Could you also confirm whether users can create additional document types within the compliance
+
+Both options should retain the verification process and audit trail, recording who completed the
+action, who verified it and when.
+This would make the system more practical for property managers handling routine corrective
+actions, while allowing supporting evidence to be required where appropriate.
+
+2. Adding Custom Document Types
+Could you also confirm whether users can create additional document types within the compliance
+register?
+For example, alongside fire safety and statutory compliance certificates, property managers may
+wish to track:
+Tenancy or rental agreements
+Tenancy deposit protection certificates
+Insurance documents
+Maintenance contracts
+Other property-specific documents
+Ideally, an Organisation Admin should be able to add and manage custom document categories,
+including whether they require an expiry or renewal date.
+Some documents may simply need to be stored against a property without affecting its overall RAG
+status.
+I believe this flexibility is important because different property management companies will have
+different document management requirements.
+Could you confirm whether these two requirements can be accommodated within the existing MVP
+functionality and agreed budget?
+Overall, I'm pleased with the progress. These refinements would help make Actovara more practical
+for everyday property management without unnecessarily expanding the scope.
+Kind regards,
+Sardip
+
+CLIENT SEND THSI SO CHECK AND MAKE AMODIFICATIONS 

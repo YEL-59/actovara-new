@@ -191,6 +191,8 @@ export const importsService = {
             );
             if (!req) {
               rowErrors.push(`${compType.code} is not tracked on ${prop.reference}.`);
+            } else if (!compType.storeOnly && !expiryIso && !(req.renewalMonthsOverride ?? compType.defaultRenewalMonths)) {
+              rowErrors.push(`Expiry date is required: ${compType.code} has no fixed renewal cycle.`);
             } else {
               const dupKey = `${prop._id}:${compType._id}:${issueIso}`;
               const hasExisting = db.certificates.some(
@@ -296,7 +298,7 @@ export const importsService = {
                   propertyId: prop._id,
                   complianceTypeId: ct._id,
                   applicability: 'applicable',
-                  status: ct.storeOnly ? 'store_only' : 'missing',
+                  status: 'missing',
                 });
               }
             }

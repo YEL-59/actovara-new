@@ -21,13 +21,13 @@ function demoReportBlob(report: ReportView): Blob {
   const reqRows = (s?.requirements ?? [])
     .map(
       (r) =>
-        `<tr><td>${esc(r.complianceTypeName)}</td><td>${esc(r.status)}</td><td>${esc(r.expiryDate ? r.expiryDate.slice(0, 10) : '—')}</td><td>${esc(r.currentCertificateName ?? '—')}</td></tr>`,
+        `<tr><td>${esc(r.complianceTypeName)}${r.affectsRag === false ? ' (not in RAG)' : ''}</td><td>${esc(r.status)}</td><td>${esc(r.expiryDate ? r.expiryDate.slice(0, 10) : '—')}</td><td>${esc(r.currentCertificateName ?? '—')}</td></tr>`,
     )
     .join('');
   const actRows = (s?.actions ?? [])
     .map(
       (a) =>
-        `<tr><td>${esc(a.reference)}</td><td>${esc(a.title)}</td><td>${esc(a.status)}</td><td>${esc(a.dueDate.slice(0, 10))}</td><td>${esc(a.evidenceRefs.join(', ') || '—')}</td></tr>`,
+        `<tr><td>${esc(a.reference)}</td><td>${esc(a.title)}</td><td>${esc(a.status)}</td><td>${esc(a.dueDate.slice(0, 10))}</td><td>${esc(a.evidenceRefs.join(', ') || (a.completionMethod === 'confirmation' ? 'Written confirmation' : '—'))}</td></tr>`,
     )
     .join('');
   const html = [

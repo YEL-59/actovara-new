@@ -21,7 +21,7 @@ export function SettingsNav() {
   const items: SettingsNavItem[] = [
     { href: '/settings', label: 'Organisation', icon: Building2, visible: true },
     { href: '/settings/team', label: 'Team', icon: Users, visible: can('team.manage') },
-    { href: '/settings/compliance-types', label: 'Compliance Types', icon: ClipboardList, visible: true },
+    { href: '/settings/compliance-types', label: 'Document Types', icon: ClipboardList, visible: true },
     { href: '/settings/notifications', label: 'Notifications', icon: BellRing, visible: true },
     { href: '/settings/imports', label: 'Imports', icon: Upload, visible: ENABLE_CSV_IMPORT && can('import.run') },
     { href: '/settings/audit-log', label: 'Audit Log', icon: History, visible: can('audit.view') },

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, DatePicker, FileDropzone, Modal, Select, Skeleton, Textarea, useToast } from '@/components/ui';
+import { affectsRag } from '@/lib/documents';
 import { useApi } from '@/lib/hooks/useApi';
 import { formatDate } from '@/lib/format';
 import { certificatesService, errorMessage, isApiError, propertiesService } from '@/services';
@@ -85,6 +86,9 @@ export function CertificateUploadModal({ open, requirements, propertyId, require
   const type = selected?.complianceType;
   const storeOnly = !!type?.storeOnly;
   const months = selected?.renewalMonthsOverride ?? type?.defaultRenewalMonths;
+  /** Types without a renewal cycle ("expiry date entered on upload") need the date typed in. */
+  const expiryNeeded = !!selected && !storeOnly && !months;
+  const countsTowardsRag = affectsRag(type);
   const calculated = !expiryDate && !storeOnly ? previewExpiry(issueDate, months) : null;
   const current = selected?.currentCertificate;
   const today = new Date().toISOString().slice(0, 10);
@@ -97,7 +101,8 @@ export function CertificateUploadModal({ open, requirements, propertyId, require
     if (!reqId) e.requirementId = 'Choose the compliance type.';
     if (!issueDate) e.issueDate = 'Enter the inspection or issue date.';
     else if (issueDate > today) e.issueDate = 'The issue date cannot be in the future.';
-    if (!storeOnly && expiryDate && issueDate && expiryDate <= issueDate) e.expiryDate = 'The expiry date must be after the issue date.';
+    if (expiryNeeded && !expiryDate) e.expiryDate = 'Enter the expiry date. This document type has no fixed renewal cycle.';
+    else if (!storeOnly && expiryDate && issueDate && expiryDate <= issueDate) e.expiryDate = 'The expiry date must be after the issue date.';
     if (reviewDate && issueDate && reviewDate < issueDate) e.reviewDate = 'The review date cannot be before the issue date.';
     if (!files[0]) e.file = 'Choose a file to upload.';
     setErrors(e);
@@ -212,7 +217,13 @@ export function CertificateUploadModal({ open, requirements, propertyId, require
 
         {storeOnly && (
           <Alert tone="info" title="Stored document — no reminders">
-            {type?.name} is kept for record only. It has no expiry date, does not affect compliance status and no reminders are sent.
+            {type?.name} is kept on file. It has no expiry date and no reminders are sent
+            {countsTowardsRag ? '.' : ", and it does not affect the property's RAG status."}
+          </Alert>
+        )}
+        {!storeOnly && selected && !countsTowardsRag && (
+          <Alert tone="info" title="Not counted in RAG">
+            {type?.name} is tracked with its expiry date and reminders, but it does not change the property&apos;s RAG status.
           </Alert>
         )}
 
@@ -230,7 +241,8 @@ export function CertificateUploadModal({ open, requirements, propertyId, require
           />
           {!storeOnly && (
             <DatePicker
-              label="Expiry date"
+              label={expiryNeeded ? 'Expiry / end date' : 'Expiry date'}
+              required={expiryNeeded}
               value={expiryDate}
               min={issueDate || undefined}
               onChange={(e) => {

@@ -2,6 +2,7 @@
  * Client-side mirror of the backend status engine (PRD §5.1–5.3, proposed rules — Q-004).
  * The backend `status.service.ts` will own these rules; keep both in sync.
  */
+import { affectsRag } from '@/lib/documents';
 import { daysUntil } from '@/lib/format';
 import type { Certificate, ComplianceType, PropertyRequirement, Rag, RequirementStatus } from '@/types/domain';
 import type { MockDb } from './types';
@@ -23,7 +24,10 @@ export function requirementStatus(
   return 'valid';
 }
 
-/** Recompute every derived field in place: requirement status, action overdue flags, property RAG/counts/nextDue. */
+/**
+ * Recompute every derived field in place: requirement status, action overdue flags, property RAG/counts/nextDue.
+ * Requirements whose type has `affectsRag: false` keep their own status but are left out of RAG, counts and nextDue.
+ */
 export function recompute(db: MockDb, now: Date = new Date()): MockDb {
   const dueSoonDays = db.organisation.settings.dueSoonDays;
   const types = new Map(db.complianceTypes.map((t) => [t._id, t]));
@@ -38,7 +42,7 @@ export function recompute(db: MockDb, now: Date = new Date()): MockDb {
   for (const a of db.actions) a.isOverdue = a.status !== 'closed' && daysUntil(a.dueDate, now) < 0;
 
   for (const p of db.properties) {
-    const reqs = db.requirements.filter((r) => r.propertyId === p._id);
+    const reqs = db.requirements.filter((r) => r.propertyId === p._id && affectsRag(types.get(r.complianceTypeId)));
     const acts = db.actions.filter((a) => a.propertyId === p._id);
     const overdue = reqs.filter((r) => r.status === 'overdue').length;
     const missing = reqs.filter((r) => r.status === 'missing').length;
@@ -68,9 +72,12 @@ export function recompute(db: MockDb, now: Date = new Date()): MockDb {
   return db;
 }
 
-/** Gauge percentages (PRD §5.3). */
+/** Gauge percentages (PRD §5.3). Only document types that count towards RAG are included. */
 export function gauges(db: MockDb, propertyIds: Set<string>) {
-  const reqs = db.requirements.filter((r) => propertyIds.has(r.propertyId) && r.applicability === 'applicable');
+  const types = new Map(db.complianceTypes.map((t) => [t._id, t]));
+  const reqs = db.requirements.filter(
+    (r) => propertyIds.has(r.propertyId) && r.applicability === 'applicable' && affectsRag(types.get(r.complianceTypeId)),
+  );
   const inDate = reqs.filter((r) => r.status === 'valid' || r.status === 'due_soon' || r.status === 'store_only').length;
   const certificatesInDate = reqs.length ? Math.round((inDate / reqs.length) * 100) : 0;
   const acts = db.actions.filter((a) => propertyIds.has(a.propertyId));

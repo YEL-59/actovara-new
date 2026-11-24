@@ -7,7 +7,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Manage your organisation profile, team access, compliance catalogue, notifications, and audit trail."
+        description="Manage your organisation profile, team access, document types, notifications, and audit trail."
         className="mb-2"
       />
       <SettingsNav />

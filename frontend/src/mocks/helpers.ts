@@ -1,3 +1,4 @@
+import { affectsRag } from '@/lib/documents';
 import { can, type Permission } from '@/lib/permissions';
 import { forbidden, invalid } from '@/services/mock-adapter';
 import type { AuditEvent, FileSummary, ReportSnapshotData } from '@/types/domain';
@@ -94,6 +95,7 @@ export function buildReportSnapshot(db: MockDb, propertyId: string): ReportSnaps
       category: t?.category ?? 'other',
       status: r.status,
       isApplicable: r.applicability === 'applicable',
+      affectsRag: affectsRag(t),
       expiryDate: cert?.expiryDate,
       currentCertificateName: cert?.file.name,
       currentCertificateVersion: cert?.version,
@@ -124,12 +126,16 @@ export function buildReportSnapshot(db: MockDb, propertyId: string): ReportSnaps
       dueDate: a.dueDate,
       ownerName: userById.get(a.ownerId)?.name ?? 'Unassigned',
       evidenceRefs: evs,
+      completionMethod: a.completion?.method,
+      completionNote: a.completion?.note,
+      completedByName: a.completion ? userById.get(a.completion.completedBy)?.name : undefined,
       closureSummary: a.closure?.summary,
       closedAt: a.closure?.verifiedAt,
     };
   });
 
-  const countStatus = (s: string) => reqs.filter((r) => r.status === s).length;
+  // Counts match the property RAG: document types stored without affecting RAG are listed but not counted.
+  const countStatus = (s: string) => reqs.filter((r) => r.status === s && affectsRag(typeById.get(r.complianceTypeId))).length;
   return {
     organisation: {
       name: db.organisation.name,

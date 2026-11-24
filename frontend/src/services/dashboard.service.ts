@@ -1,3 +1,4 @@
+import { affectsRag } from '@/lib/documents';
 import { gauges } from '@/mocks/engine';
 import { mockStore } from '@/mocks/store';
 import type { ActionView, DashboardSummary } from '@/types/domain';
@@ -17,7 +18,9 @@ export const dashboardService = {
         const properties = db.properties.filter((p) => p.status === 'active' && (!propertyId || p._id === propertyId));
         const ids = new Set(properties.map((p) => p._id));
         const g = gauges(db, ids);
-        const reqs = db.requirements.filter((r) => ids.has(r.propertyId));
+        const types = new Map(db.complianceTypes.map((t) => [t._id, t]));
+        // Documents stored without affecting RAG are not "urgent" and do not count as overdue items.
+        const reqs = db.requirements.filter((r) => ids.has(r.propertyId) && affectsRag(types.get(r.complianceTypeId)));
         const acts = db.actions.filter((a) => ids.has(a.propertyId));
         const open = acts.filter((a) => a.status !== 'closed');
         const name = (id: string) => db.properties.find((p) => p._id === id)?.name ?? '';

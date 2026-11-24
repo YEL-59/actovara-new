@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { BookOpen, ClipboardList, Pencil, Plus, Search } from 'lucide-react';
 import { ComplianceTypeModal, LegislationHistoryDrawer, SettingsTableSkeleton } from '@/components/settings';
 import { Alert, Badge, Button, Card, EmptyState, Input, Select, TD, TH, Table, TypePill } from '@/components/ui';
+import { affectsRag, expiryLabel } from '@/lib/documents';
 import { useApi } from '@/lib/hooks/useApi';
 import { useSession } from '@/lib/session-mock';
 import { complianceTypesService } from '@/services';
@@ -23,6 +24,8 @@ export default function ComplianceTypesSettingsPage() {
   const [editing, setEditing] = useState<ComplianceType | null>(null);
   const [historyType, setHistoryType] = useState<ComplianceType | null>(null);
 
+  const categories = useMemo(() => Array.from(new Set((types ?? []).map((t) => t.category))), [types]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (types ?? []).filter((t) => {
@@ -39,7 +42,7 @@ export default function ComplianceTypesSettingsPage() {
 
   if (error) {
     return (
-      <Alert tone="error" title="Could not load compliance catalogue" onRetry={reload}>
+      <Alert tone="error" title="Could not load document types" onRetry={reload}>
         {error}
       </Alert>
     );
@@ -59,14 +62,14 @@ export default function ComplianceTypesSettingsPage() {
     <div className="space-y-6">
       {!canManage && (
         <Alert tone="info" title="Read-only catalogue">
-          You can view compliance types and legislation references. Only Organisation Admins can add or edit catalogue entries.
+          You can view document types and legislation references. Only Organisation Admins can add or edit them.
         </Alert>
       )}
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="grid w-full flex-1 gap-3 sm:grid-cols-3 lg:max-w-2xl">
           <Input
-            label="Search catalogue"
+            label="Search document types"
             hideLabel
             leftIcon={<Search />}
             placeholder="Search name, code or category..."
@@ -98,7 +101,7 @@ export default function ComplianceTypesSettingsPage() {
         </div>
         {canManage && (
           <Button onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
-            Add compliance type
+            Add document type
           </Button>
         )}
       </div>
@@ -107,12 +110,12 @@ export default function ComplianceTypesSettingsPage() {
         <Card>
           <EmptyState
             icon={<ClipboardList className="h-7 w-7" />}
-            title="No compliance types match"
-            description="Adjust your search or filters, or add a custom compliance type for your organisation."
+            title="No document types match"
+            description="Adjust your search or filters, or add a custom document type for your organisation."
             action={
               canManage ? (
                 <Button onClick={openCreate} leftIcon={<Plus className="h-4 w-4" />}>
-                  Add compliance type
+                  Add document type
                 </Button>
               ) : undefined
             }
@@ -145,7 +148,10 @@ export default function ComplianceTypesSettingsPage() {
                     ))}
                   </div>
                   <div className="flex items-center justify-between border-t border-line pt-3 text-meta text-ink-muted">
-                    <span>{t.storeOnly ? 'Store only' : `${t.defaultRenewalMonths} mo renewal`}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {expiryLabel(t)}
+                      {!affectsRag(t) && <Badge tone="neutral">Not in RAG</Badge>}
+                    </span>
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="ghost" onClick={() => setHistoryType(t)}>
                         {latest ? `v${latest.version} ref` : 'Legislation'}
@@ -164,14 +170,15 @@ export default function ComplianceTypesSettingsPage() {
 
           {/* Desktop/Tablet table */}
           <div className="hidden sm:block">
-            <Table aria-label="Compliance types catalogue">
+            <Table aria-label="Document types catalogue">
               <thead>
                 <tr>
                   <TH>Order</TH>
-                  <TH>Compliance type</TH>
+                  <TH>Document type</TH>
                   <TH>Scope</TH>
                   <TH>Applicable to</TH>
-                  <TH>Renewal</TH>
+                  <TH>Expiry</TH>
+                  <TH>RAG</TH>
                   <TH>Legislation</TH>
                   <TH>Status</TH>
                   {canManage && <TH className="text-right">Actions</TH>}
@@ -201,8 +208,11 @@ export default function ComplianceTypesSettingsPage() {
                           ))}
                         </div>
                       </TD>
-                      <TD className="text-ink-muted">
-                        {t.storeOnly ? <Badge tone="neutral">Store only</Badge> : `${t.defaultRenewalMonths} months`}
+                      <TD className="whitespace-nowrap text-ink-muted">
+                        {t.storeOnly ? <Badge tone="neutral">{expiryLabel(t)}</Badge> : expiryLabel(t)}
+                      </TD>
+                      <TD className="whitespace-nowrap">
+                        {affectsRag(t) ? <span className="text-ink-muted">Counts</span> : <Badge tone="neutral">Not in RAG</Badge>}
                       </TD>
                       <TD>
                         <Button
@@ -243,6 +253,7 @@ export default function ComplianceTypesSettingsPage() {
         onClose={() => setModalOpen(false)}
         editing={editing}
         onSaved={reload}
+        categories={categories}
       />
 
       <LegislationHistoryDrawer

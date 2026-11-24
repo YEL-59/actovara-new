@@ -16,11 +16,12 @@ import {
   RotateCcw,
   Send,
   ShieldCheck,
-  TriangleAlert,
+  ShieldPlus,
   UserCheck,
 } from 'lucide-react';
 import {
   ActionDetailSkeleton,
+  CompletionSummary,
   DueDateModal,
   ProgressNoteModal,
   ReassignOwnerModal,
@@ -39,13 +40,14 @@ import {
   StatusPill,
   Timeline,
   type TimelineItem,
+  useToast,
 } from '@/components/ui';
 import { useApi } from '@/lib/hooks/useApi';
 import { formatDate, formatDateTime, formatFileSize, formatRelativeDue } from '@/lib/format';
 import { useSession } from '@/lib/session-mock';
 import { actionStatusMeta, type Tone } from '@/lib/status';
 import { cn } from '@/lib/utils';
-import { actionsService } from '@/services';
+import { actionsService, errorMessage } from '@/services';
 import type { ActionUpdate, ActionUpdateType, Evidence } from '@/types/domain';
 
 type DialogKind = 'note' | 'evidence' | 'request_verify' | 'verify' | 'reopen' | 'due_date' | 'reassign' | null;
@@ -55,7 +57,7 @@ const UPDATE_META: Record<ActionUpdateType, { label: string; tone: Tone; icon: R
   note: { label: 'Progress note', tone: 'neutral', icon: <MessageSquarePlus /> },
   status_change: { label: 'Status changed', tone: 'purple', icon: <CircleDot /> },
   evidence_added: { label: 'Evidence uploaded', tone: 'info', icon: <FilePlus2 /> },
-  verification_requested: { label: 'Verification requested', tone: 'warn', icon: <Hourglass /> },
+  verification_requested: { label: 'Submitted for verification', tone: 'warn', icon: <Hourglass /> },
   more_evidence_requested: { label: 'More evidence requested', tone: 'warn', icon: <RotateCcw /> },
   verified: { label: 'Verified & closed', tone: 'ok', icon: <ShieldCheck /> },
   reopened: { label: 'Reopened', tone: 'danger', icon: <RotateCcw /> },
@@ -71,6 +73,9 @@ const EVIDENCE_STATUS: Record<Evidence['status'], { label: string; tone: Tone }>
 
 function updateTitle(u: ActionUpdate): React.ReactNode {
   const meta = UPDATE_META[u.type];
+  if (u.type === 'verification_requested' && u.completionMethod) {
+    return `${meta.label} · completed ${u.completionMethod === 'confirmation' ? 'by written confirmation' : 'with evidence'}`;
+  }
   if (u.fromStatus && u.toStatus) {
     return (
       <span>
@@ -86,10 +91,12 @@ export default function ActionDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? '';
   const { can, switchRole } = useSession();
+  const toast = useToast();
   const canWrite = can('action.write');
   const canVerify = can('action.verify');
 
   const [dialog, setDialog] = useState<DialogKind>(null);
+  const [togglingEvidence, setTogglingEvidence] = useState(false);
 
   const detail = useApi(() => actionsService.get(id), [id]);
   if (detail.loading && !detail.data) {
@@ -136,6 +143,21 @@ export default function ActionDetailPage() {
   const validEvidence = evidence.filter((e) => e.status !== 'rejected');
   const canRequestVerification = canWrite && (action.status === 'open' || action.status === 'in_progress');
   const verifiedByName = action.verifiedByName ?? 'Org Admin';
+  const closedByConfirmation = action.completion?.method === 'confirmation';
+
+  /** Org Admin only: make evidence mandatory for this action, or allow closing by written confirmation. */
+  const toggleEvidenceRequired = async () => {
+    setTogglingEvidence(true);
+    try {
+      await actionsService.update(action._id, { evidenceRequired: !action.evidenceRequired });
+      toast.success(action.evidenceRequired ? 'Written confirmation allowed' : 'Evidence now required');
+      detail.reload();
+    } catch (err) {
+      toast.error('Could not update the action', errorMessage(err));
+    } finally {
+      setTogglingEvidence(false);
+    }
+  };
 
   const timelineItems: TimelineItem[] = updates.map((u) => {
     const meta = UPDATE_META[u.type];
@@ -171,6 +193,7 @@ export default function ActionDetailPage() {
                   Overdue
                 </Badge>
               )}
+              {action.evidenceRequired && !isClosed && <Badge tone="info">Evidence required</Badge>}
               {action.reopenCount > 0 && (
                 <Badge tone="warn">
                   Reopened {action.reopenCount}×
@@ -203,6 +226,21 @@ export default function ActionDetailPage() {
         <Alert tone="success" title={`Verified & closed by ${verifiedByName} on ${formatDateTime(action.closure.verifiedAt)}`}>
           <p className="mt-1 text-ink">{action.closure.summary}</p>
         </Alert>
+      )}
+
+      {/* Who completed it, how, and their note (awaiting verification or closed) */}
+      {action.completion && (
+        <Card>
+          <CardHeader
+            title="Completion"
+            description={
+              isClosed
+                ? 'Submitted by the owner and verified by an Org Admin.'
+                : 'Submitted by the owner. Waiting for an Org Admin to verify and close.'
+            }
+          />
+          <CompletionSummary action={action} />
+        </Card>
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -240,6 +278,14 @@ export default function ActionDetailPage() {
                   )}
                 </dd>
               </div>
+              <div className="sm:col-span-2">
+                <dt className="text-meta font-semibold uppercase tracking-wide text-ink-muted">To close this action</dt>
+                <dd className="mt-1 text-sm text-ink">
+                  {action.evidenceRequired
+                    ? 'Evidence required: photos or documents must be uploaded before it is submitted for verification.'
+                    : 'Evidence or a written completion note, then verification by an Org Admin.'}
+                </dd>
+              </div>
               <div>
                 <dt className="text-meta font-semibold uppercase tracking-wide text-ink-muted">Created</dt>
                 <dd className="mt-1 text-sm text-ink">{formatDateTime(action.createdAt)}</dd>
@@ -255,7 +301,11 @@ export default function ActionDetailPage() {
           <Card>
             <CardHeader
               title="Evidence"
-              description="Supporting photos, contractor sign-offs, or test records"
+              description={
+                action.evidenceRequired
+                  ? 'Required for this action: photos, contractor sign-offs or test records'
+                  : 'Optional: photos, contractor sign-offs or test records'
+              }
               actions={
                 canWrite && !isClosed ? (
                   <Button size="sm" variant="secondary" leftIcon={<FilePlus2 className="h-4 w-4" />} onClick={() => setDialog('evidence')}>
@@ -270,8 +320,12 @@ export default function ActionDetailPage() {
                 title="No evidence uploaded yet"
                 description={
                   isClosed
-                    ? 'No evidence files were attached to this action.'
-                    : 'Upload at least one file before requesting verification.'
+                    ? closedByConfirmation
+                      ? 'Closed by written confirmation. No evidence files were attached.'
+                      : 'No evidence files were attached to this action.'
+                    : action.evidenceRequired
+                      ? 'Evidence is required. Upload at least one file before submitting for verification.'
+                      : 'Upload photos or documents, or submit it by written confirmation instead.'
                 }
                 action={
                   canWrite && !isClosed ? (
@@ -352,11 +406,11 @@ export default function ActionDetailPage() {
                         leftIcon={<ShieldCheck className="h-4 w-4" />}
                         onClick={() => setDialog('verify')}
                       >
-                        Review evidence &amp; close
+                        Review &amp; close
                       </Button>
                     ) : (
                       <Alert tone="warning" title="Awaiting verification">
-                        An Org Admin must review the evidence, then verify and close this action or request more evidence.
+                        An Org Admin must review the completion, then verify and close this action or request more evidence.
                         <button
                           type="button"
                           onClick={() => switchRole('org_admin')}
@@ -370,20 +424,16 @@ export default function ActionDetailPage() {
 
                   {canRequestVerification && (
                     <div className="space-y-1.5">
-                      <Button
-                        className="w-full"
-                        leftIcon={<Send className="h-4 w-4" />}
-                        disabled={validEvidence.length === 0}
-                        onClick={() => setDialog('request_verify')}
-                      >
-                        Request verification
+                      <Button className="w-full" leftIcon={<Send className="h-4 w-4" />} onClick={() => setDialog('request_verify')}>
+                        Submit for verification
                       </Button>
-                      {validEvidence.length === 0 && (
-                        <p className="flex items-start gap-1.5 text-meta text-ink-muted">
-                          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn-600" aria-hidden />
-                          Upload at least one piece of evidence first.
-                        </p>
-                      )}
+                      <p className="text-meta text-ink-muted">
+                        {action.evidenceRequired
+                          ? validEvidence.length === 0
+                            ? 'Evidence is required. Upload at least one file first.'
+                            : 'Evidence is required for this action.'
+                          : 'Complete it with evidence or with a written completion note.'}
+                      </p>
                     </div>
                   )}
 
@@ -424,6 +474,18 @@ export default function ActionDetailPage() {
                         >
                           Reassign owner
                         </Button>
+                        {canVerify && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start"
+                            leftIcon={<ShieldPlus className="h-4 w-4" />}
+                            isLoading={togglingEvidence}
+                            onClick={toggleEvidenceRequired}
+                          >
+                            {action.evidenceRequired ? 'Allow closing by confirmation' : 'Require evidence to close'}
+                          </Button>
+                        )}
                       </div>
                     </>
                   )}
@@ -443,6 +505,7 @@ export default function ActionDetailPage() {
         evidenceCount={validEvidence.length}
         onClose={() => setDialog(null)}
         onDone={detail.reload}
+        onUploadEvidence={() => setDialog('evidence')}
       />
       <VerifyActionModal
         open={dialog === 'verify'}

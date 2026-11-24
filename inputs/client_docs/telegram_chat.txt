@@ -1,3 +1,13 @@
-# Paste your exported Telegram chat here.
-# You do NOT need to clean it up - greetings, timestamps, and voice notes can stay.
-# The AI parser will automatically filter noise and extract finalized feature changes.
+# Telegram Chat History & Live Bot Sync (inputs/client_docs/telegram_chat.txt)
+# Historical messages imported from messages.html; new messages are appended automatically by `npm run sync-telegram`.
+
+[2026-11-15 14:18] Tofayel Islam: Shared frontend review spreadsheet: https://docs.google.com/spreadsheets/d/1QzZCYqEZKE58UecL69-PvLO6ePCEfsSiosD41MkjdTI/edit?gid=0#gid=0
+[2026-11-16 12:30] Tofayel Islam: Sent interactive Actovara MVP frontend (https://actovara.vercel.app/) with CLIENT_FRONTEND_WALKTHROUGH.md and SRS.md for review before Backend & Database phase.
+[2026-11-16 13:28] Supreme Squad: Asked about client branding logo and colours.
+[2026-11-17 05:08] Client / Supreme Squad: Attached Actovara_Frontend_Checklist_Updated_Photos_Logo.xlsx and Jannatul Reply - 16-11.pdf (PostgreSQL confirmation, Know. Act. Prove. dashboard, RAG wording & action-driven RAG, property photo upload, new Actovara logo).
+[2026-11-17 17:24] Tofayel Islam: Sent detailed PostgreSQL confirmation reply explaining why MongoDB/Express appeared in early prototype and confirming PostgreSQL + Prisma + TypeScript for production.
+[2026-11-18 09:38] Tofayel Islam: Confirmed proceeding with PostgreSQL, Prisma ORM, and TypeScript backend architecture and covering multi-org isolation, security controls, and audit trail in final technical docs.
+[2026-11-18 10:29] Tofayel Islam: Test sync
+[2026-11-18 10:35] Supreme Squad (@supreme_squad22) (sardip123 || Innosight | #FO62A55FAD6C6 ||$800 | -1004480114152): sent korbo
+[2026-11-18 10:35] Tofayel Islam (@Tofayel_59) (sardip123 || Innosight | #FO62A55FAD6C6 ||$800 | -1004480114152): na na abhai
+[2026-11-18 10:35] Supreme Squad (@supreme_squad22) (sardip123 || Innosight | #FO62A55FAD6C6 ||$800 | -1004480114152): okk

@@ -2,7 +2,7 @@ import { acceptUpload, actorRef, includesText, requirePermission, writeAudit, ty
 import { mockStore } from '@/mocks/store';
 import { newId } from '@/mocks/time';
 import type { MockDb } from '@/mocks/types';
-import type { Action, ActionDetail, ActionStatus, ActionUpdate, ActionView, Evidence, Priority } from '@/types/domain';
+import type { Action, ActionDetail, ActionStatus, ActionUpdate, ActionView, CompletionMethod, Evidence, Priority } from '@/types/domain';
 import { http } from './api';
 import { USE_MOCKS } from './config';
 import { conflict, invalid, mockCall, notFound, paginate } from './mock-adapter';
@@ -30,30 +30,54 @@ export interface ActionInput {
   priority: Priority;
   ownerId: string;
   dueDate: string;
+  /** Owner must attach evidence before submitting (default false: evidence or a written confirmation). */
+  evidenceRequired?: boolean;
+}
+
+export interface SubmitCompletionInput {
+  method: CompletionMethod;
+  /** What was done and when. Required for both methods. */
+  note: string;
 }
 
 const PRIORITY_ORDER: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 
+const userName = (db: MockDb, id: string) => db.users.find((u) => u._id === id)?.name;
+
 const view = (db: MockDb, a: Action): ActionView => ({
   ...a,
   propertyName: db.properties.find((p) => p._id === a.propertyId)?.name ?? '—',
-  ownerName: db.users.find((u) => u._id === a.ownerId)?.name ?? '—',
-  verifiedByName: a.closure ? db.users.find((u) => u._id === a.closure!.verifiedBy)?.name ?? 'Org Admin' : undefined,
+  ownerName: userName(db, a.ownerId) ?? '—',
+  verifiedByName: a.closure ? userName(db, a.closure.verifiedBy) ?? 'Org Admin' : undefined,
+  completedByName: a.completion ? userName(db, a.completion.completedBy) ?? '—' : undefined,
 });
+
+export const completionLabel: Record<CompletionMethod, string> = {
+  evidence: 'with evidence',
+  confirmation: 'by written confirmation',
+};
 
 const findAction = (db: MockDb, id: string) => db.actions.find((a) => a._id === id) ?? notFound('Action');
 
-function log(db: MockDb, a: Action, type: ActionUpdate['type'], body?: string, fromStatus?: ActionStatus, toStatus?: ActionStatus) {
-  const u: ActionUpdate = { _id: newId('upd'), actionId: a._id, author: actorRef(), type, body, fromStatus, toStatus, createdAt: new Date().toISOString() };
+function log(
+  db: MockDb,
+  a: Action,
+  type: ActionUpdate['type'],
+  body?: string,
+  fromStatus?: ActionStatus,
+  toStatus?: ActionStatus,
+  extra: Pick<ActionUpdate, 'completionMethod'> = {},
+) {
+  const u: ActionUpdate = { _id: newId('upd'), actionId: a._id, author: actorRef(), type, body, fromStatus, toStatus, ...extra, createdAt: new Date().toISOString() };
   db.actionUpdates.push(u);
   a.updatedAt = u.createdAt;
   return u;
 }
 
-function transition(db: MockDb, a: Action, to: ActionStatus, type: ActionUpdate['type'], body?: string) {
+function transition(db: MockDb, a: Action, to: ActionStatus, type: ActionUpdate['type'], body?: string, extra?: Pick<ActionUpdate, 'completionMethod'>) {
   const from = a.status;
   a.status = to;
-  return log(db, a, type, body, from, to);
+  return log(db, a, type, body, from, to, extra);
 }
 
 const write = <T,>(fn: (db: MockDb) => { data: T; message: string }) =>
@@ -127,12 +151,14 @@ export const actionsService = {
             dueDate: new Date(input.dueDate).toISOString(),
             status: 'open',
             isOverdue: false,
+            evidenceRequired: !!input.evidenceRequired,
             reopenCount: 0,
             createdAt: now,
             updatedAt: now,
           };
           db.actions.push(a);
-          log(db, a, 'created', a.sourceRef ? `Created from ${a.sourceRef}.` : 'Created manually.');
+          const how = a.evidenceRequired ? ' Evidence is required to close it.' : '';
+          log(db, a, 'created', (a.sourceRef ? `Created from ${a.sourceRef}.` : 'Created manually.') + how);
           writeAudit(db, 'create', 'action', a._id, `Created ${a.reference}: ${a.title}`);
           return { data: a, message: `${a.reference} created`, statusCode: 201 };
         }),
@@ -140,12 +166,18 @@ export const actionsService = {
     );
   },
 
-  update(id: string, input: Partial<Pick<Action, 'title' | 'description' | 'priority' | 'ownerId' | 'dueDate'>> & { dueDateReason?: string }) {
+  /** `evidenceRequired` can only be changed by an Org Admin (`action.verify`), so an owner cannot waive it. */
+  update(id: string, input: Partial<Pick<Action, 'title' | 'description' | 'priority' | 'ownerId' | 'dueDate' | 'evidenceRequired'>> & { dueDateReason?: string }) {
     if (!USE_MOCKS) return http.patch<Action>(`/actions/${id}`, input);
     return write((db) => {
       requirePermission('action.write');
       const a = findAction(db, id);
       if (a.status === 'closed') conflict('A closed action cannot be edited. Reopen it first.');
+      if (input.evidenceRequired !== undefined && input.evidenceRequired !== a.evidenceRequired) {
+        requirePermission('action.verify');
+        a.evidenceRequired = input.evidenceRequired;
+        log(db, a, 'note', a.evidenceRequired ? 'Evidence is now required to close this action.' : 'This action can now be closed with evidence or a written confirmation.');
+      }
       if (input.dueDate && new Date(input.dueDate).toISOString() !== a.dueDate) {
         if (!input.dueDateReason?.trim()) invalid('Give a reason for changing the due date.', 'dueDateReason');
         log(db, a, 'due_date_changed', input.dueDateReason!.trim());
@@ -209,20 +241,39 @@ export const actionsService = {
     });
   },
 
-  requestVerification(id: string, input: { note?: string } = {}) {
+  /**
+   * Owner marks the work complete and submits it for Org Admin verification, either with evidence
+   * (at least one non-rejected file) or by written confirmation (note only, unless evidence is required).
+   */
+  requestVerification(id: string, input: SubmitCompletionInput) {
     if (!USE_MOCKS) return http.post<Action>(`/actions/${id}/request-verification`, input);
     return write((db) => {
       requirePermission('action.write');
       const a = findAction(db, id);
       if (a.status === 'closed' || a.status === 'awaiting_verification') conflict('This action is not in progress.');
-      if (!db.evidence.some((e) => e.actionId === id && e.status !== 'rejected')) conflict('Upload at least one piece of evidence first.');
-      transition(db, a, 'awaiting_verification', 'verification_requested', input.note?.trim() || 'Ready for verification.');
-      writeAudit(db, 'update', 'action', id, `Verification requested for ${a.reference}`);
+      const method: CompletionMethod = input.method === 'confirmation' ? 'confirmation' : 'evidence';
+      const note = input.note?.trim() ?? '';
+      if (method === 'confirmation' && a.evidenceRequired) {
+        conflict('Evidence is required for this action. Upload at least one file and submit it with evidence.');
+      }
+      if (method === 'evidence' && !db.evidence.some((e) => e.actionId === id && e.status !== 'rejected')) {
+        conflict('Upload at least one piece of evidence first, or submit by written confirmation.');
+      }
+      if (!note) invalid('Write a completion note.', 'note');
+      const actor = mockStore.actor();
+      a.completion = { method, note, completedBy: actor._id, completedAt: new Date().toISOString() };
+      transition(db, a, 'awaiting_verification', 'verification_requested', note, { completionMethod: method });
+      writeAudit(db, 'update', 'action', id, `${a.reference} completed ${completionLabel[method]} and sent for verification`);
       return { data: a, message: 'Sent for verification' };
     });
   },
 
-  verify(id: string, input: { decision: 'accept' | 'request_more'; summary?: string; reason?: string; acceptedEvidenceIds: string[] }) {
+  /**
+   * Org Admin decision. `accept` closes the action (at least one accepted evidence item when it was completed
+   * with evidence; none needed for a written confirmation). `request_more` returns it to the owner and can
+   * make evidence mandatory for the resubmission.
+   */
+  verify(id: string, input: { decision: 'accept' | 'request_more'; summary?: string; reason?: string; acceptedEvidenceIds: string[]; requireEvidence?: boolean }) {
     if (!USE_MOCKS) return http.post<Action>(`/actions/${id}/verify`, input);
     return write((db) => {
       requirePermission('action.verify');
@@ -233,16 +284,20 @@ export const actionsService = {
       const now = new Date().toISOString();
       if (input.decision === 'accept') {
         if (!input.summary?.trim()) invalid('Write a closure summary.', 'summary');
+        const method: CompletionMethod = a.completion?.method ?? 'evidence';
         const accepted = items.filter((e) => input.acceptedEvidenceIds.includes(e._id));
-        if (!accepted.length) invalid('Accept at least one piece of evidence.', 'acceptedEvidenceIds');
+        if (method === 'evidence' && !accepted.length) invalid('Accept at least one piece of evidence.', 'acceptedEvidenceIds');
         items.forEach((e) => Object.assign(e, { status: accepted.includes(e) ? 'accepted' : 'rejected', reviewedBy: actorRef(), reviewedAt: now }));
         a.closure = { verifiedBy: actor._id, verifiedAt: now, summary: input.summary!.trim() };
         transition(db, a, 'closed', 'verified', input.summary!.trim());
-        writeAudit(db, 'verify', 'action', id, `Verified and closed ${a.reference}`);
+        writeAudit(db, 'verify', 'action', id, `Verified and closed ${a.reference} (completed ${completionLabel[method]})`);
         return { data: a, message: `${a.reference} closed` };
       }
       if (!input.reason?.trim()) invalid('Say what further evidence is needed.', 'reason');
-      transition(db, a, 'in_progress', 'more_evidence_requested', input.reason!.trim());
+      a.completion = undefined;
+      if (input.requireEvidence) a.evidenceRequired = true;
+      const body = input.reason!.trim() + (input.requireEvidence ? ' Evidence is now required to close this action.' : '');
+      transition(db, a, 'in_progress', 'more_evidence_requested', body);
       writeAudit(db, 'update', 'action', id, `More evidence requested for ${a.reference}`);
       return { data: a, message: 'Returned to the owner for more evidence' };
     });
@@ -256,6 +311,7 @@ export const actionsService = {
       if (a.status !== 'closed') conflict('Only closed actions can be reopened.');
       if (!input.reason?.trim()) invalid('Give a reason for reopening.', 'reason');
       a.closure = undefined;
+      a.completion = undefined;
       a.reopenCount += 1;
       transition(db, a, 'in_progress', 'reopened', input.reason.trim());
       writeAudit(db, 'reopen', 'action', id, `Reopened ${a.reference}: ${input.reason.trim()}`);

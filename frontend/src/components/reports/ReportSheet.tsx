@@ -127,7 +127,10 @@ export function ReportSheet({ report }: { report: ReportView }) {
                   <tr key={r._id} className="break-inside-avoid">
                     <td className="px-3 py-2.5">
                       <p className="font-semibold text-ink">{r.complianceTypeName}</p>
-                      <p className="text-xs capitalize text-ink-muted">{r.category.replace('_', ' ')}</p>
+                      <p className="text-xs capitalize text-ink-muted">
+                        {r.category.replace('_', ' ')}
+                        {r.affectsRag === false && <span className="normal-case"> · Stored only, not counted in RAG</span>}
+                      </p>
                     </td>
                     <td className="px-3 py-2.5">
                       <StatusPill kind="requirement" value={r.status} />
@@ -236,10 +239,21 @@ export function ReportSheet({ report }: { report: ReportView }) {
                 <p className="mt-1 text-xs text-ink-muted">
                   Owner: {a.ownerName} · Closed: {a.closedAt ? formatDate(a.closedAt) : '—'}
                 </p>
+                {a.completionMethod && (
+                  <p className="mt-1 text-xs text-ink">
+                    Completed {a.completionMethod === 'confirmation' ? 'by written confirmation' : 'with evidence'}
+                    {a.completedByName ? ` by ${a.completedByName}` : ''}
+                    {a.completionNote ? `: ${a.completionNote}` : ''}
+                  </p>
+                )}
                 {a.closureSummary && <p className="mt-1 text-xs text-ink">Verification note: {a.closureSummary}</p>}
                 <p className="mt-1 text-xs text-ink-muted">
                   <span className="font-semibold text-ink">Evidence references:</span>{' '}
-                  {a.evidenceRefs.length > 0 ? a.evidenceRefs.join(', ') : 'None attached'}
+                  {a.evidenceRefs.length > 0
+                    ? a.evidenceRefs.join(', ')
+                    : a.completionMethod === 'confirmation'
+                      ? 'None (closed by written confirmation)'
+                      : 'None attached'}
                 </p>
               </div>
             ))}

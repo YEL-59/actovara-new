@@ -19,6 +19,7 @@ import {
   useToast,
   type MenuItem,
 } from '@/components/ui';
+import { affectsRag, expiryMode } from '@/lib/documents';
 import { formatDate } from '@/lib/format';
 import { requirementStatusMeta } from '@/lib/status';
 import { cn } from '@/lib/utils';
@@ -63,9 +64,22 @@ function ApplicabilityToggle({ r, disabled, busy, onToggle }: { r: RequirementVi
   );
 }
 
+/** Small tag for document types that are stored against the property without affecting its RAG status. */
+function NotInRag({ r }: { r: RequirementView }) {
+  if (affectsRag(r.complianceType)) return null;
+  return (
+    <Tooltip content="Stored and tracked for this property, but it never changes the RAG status.">
+      <span className="ml-1.5 inline-flex rounded bg-neutral-100 px-1.5 py-0.5 align-middle text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+        Not in RAG
+      </span>
+    </Tooltip>
+  );
+}
+
 function Renewal({ r }: { r: RequirementView }) {
   const t = r.complianceType;
   if (t.storeOnly) return <span className="text-ink-muted">Store only</span>;
+  if (r.renewalMonthsOverride == null && expiryMode(t) === 'on_upload') return <span className="text-ink-muted">Set on upload</span>;
   if (r.renewalMonthsOverride != null) {
     return (
       <span className="inline-flex items-center gap-1.5">
@@ -178,7 +192,10 @@ export function RegisterTab({ requirements, editable, canUpload, statusFilter, o
                 <div className="flex items-start justify-between gap-3">
                   <button type="button" onClick={() => onOpen(r)} className="focus-ring min-w-0 rounded text-left">
                     <p className="font-semibold text-ink hover:text-brand-600">{r.complianceType.name}</p>
-                    <p className="text-meta text-ink-muted">{r.complianceType.category}</p>
+                    <p className="text-meta text-ink-muted">
+                      {r.complianceType.category}
+                      <NotInRag r={r} />
+                    </p>
                   </button>
                   <DropdownMenu items={menu(r)} label={`Options for ${r.complianceType.name}`} />
                 </div>
@@ -231,7 +248,10 @@ export function RegisterTab({ requirements, editable, canUpload, statusFilter, o
                         <button type="button" onClick={() => onOpen(r)} className="focus-ring rounded text-left font-semibold text-ink hover:text-brand-600">
                           {r.complianceType.name}
                         </button>
-                        <p className="text-meta text-ink-muted">{r.complianceType.code}</p>
+                        <p className="text-meta text-ink-muted">
+                          {r.complianceType.code}
+                          <NotInRag r={r} />
+                        </p>
                       </TD>
                       <TD className="whitespace-nowrap text-ink-muted">{r.complianceType.category}</TD>
                       <TD>

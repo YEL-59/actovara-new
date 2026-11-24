@@ -10,6 +10,7 @@
 |---|---|---|---|---|---|
 | Q-P2-01 | Phase 2: mobile site inspections | Client (19 Nov) asked whether inspections (checklists, findings, photos, create actions, property history) fit Phase 2, starting with mobile-responsive web. Not requested for MVP. Needs Phase 2 scope + estimate; offline support TBD. | None for MVP; future module (InspectionTemplate, Inspection, Finding → Action) | Backlog | Architecture fit confirmed in reply draft 2026-11-19 |
 | Q-BUD-01 | Budget/timeline confirmation | Client asked to confirm all updates stay within the fixed budget and timeline. | Commercial; developer must confirm | Open (Jannatul) | - |
+| Q-BUD-02 | Budget: 24 Nov refinements | Client asked whether (1) closing actions by written confirmation and (2) custom document types fit the existing MVP and agreed budget. Built as extensions of existing modules (TASK-MOD-001). | Commercial; developer must confirm | Open (Jannatul) | Reply draft marks it [CONFIRM] |
 
 ---
 

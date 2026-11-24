@@ -6,7 +6,7 @@
 > **Execution Strategy**: `FRONTEND_FIRST` *(Supports `FIGMA_TO_FULLSTACK`, `BOTH_FULLSTACK`, `BACKEND_FIRST`)*  
 > **Active Backend Stack**: `NESTJS_PRISMA_POSTGRES` *(Implemented: `EXPRESS_MONGOOSE`; Plan/Blueprint templates: `EXPRESS_PRISMA_POSTGRES`, `NESTJS_PRISMA_POSTGRES`, `FASTAPI_PYTHON`, `CUSTOM_ANY`)*  
 > **Language Preference**: `EN` *(Configurable via `npm run settings` or `settings.json`)*  
-> **Last Checkpoint**: `2026-11-19` (Local Time) — Client revision: action verify/close from the Actions tab (see planning/MEMORY.md)  
+> **Last Checkpoint**: `2026-11-24` (Local Time) — Client revision TASK-MOD-001: close actions by written confirmation + custom document types (see planning/MEMORY.md)  
 
 ---
 
@@ -62,6 +62,7 @@ Read PROJECT_STATUS.md and planning/MEMORY.md (Checkpoint: 2026-11-17 18:03) to 
 | Task ID | Module | Title | Status | Verification |
 |---|---|---|---|---|
 | `TASK-004` | Frontend Core | Actovara Frontend MVP, Brand Logo, Know/Act/Prove, RAG & Photo Upload | `DONE` | `tsc --noEmit` & `next build` passed |
+| `TASK-MOD-001` | Client Revision | Close actions by confirmation (evidence optional/required) + custom document types (RAG opt-out, expiry modes) | `DONE` | `tsc --noEmit` & `next build` passed |
 | `TASK-001` | Planning & ERD | Client Intake (`Jannatul Reply - 16-11.pdf`), PostgreSQL ERD & API Contract | `[⏳ ACTIVE] READY` | `npm run inputs` done; pending ERD/API Gate |
 | `TASK-002` | Backend Data | PostgreSQL + Prisma Schemas & Multi-Org Isolation | `BACKLOG` | Awaiting `TASK-001` |
 | `TASK-003` | Backend API | NestJS Modular REST APIs, RBAC, PDF Reports & Audit Trail | `BACKLOG` | Awaiting `TASK-002` |

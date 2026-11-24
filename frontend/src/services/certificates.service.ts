@@ -196,6 +196,7 @@ export const certificatesService = {
           const file = acceptUpload(input.file);
 
           const months = req.renewalMonthsOverride ?? type.defaultRenewalMonths;
+          if (!type.storeOnly && !months && !input.expiryDate) invalid(`Enter the expiry date. ${type.name} has no fixed renewal cycle.`, 'expiryDate');
           const issueIso = new Date(input.issueDate).toISOString();
           const expiryDate = input.expiryDate
             ? new Date(input.expiryDate).toISOString()
@@ -232,6 +233,45 @@ export const certificatesService = {
   },
 };
 
+type ComplianceTypeInput = Pick<ComplianceType, 'name' | 'code' | 'category' | 'applicableTo' | 'defaultRenewalMonths' | 'storeOnly'> & {
+  affectsRag?: boolean;
+  legislation?: string;
+  sortOrder?: number;
+};
+
+function validateRenewal(storeOnly: boolean | undefined, months: number | null | undefined) {
+  // `null` months on a tracked type means the expiry date is entered on upload.
+  if (!storeOnly && months != null && (!Number.isFinite(months) || months < 1 || months > 120)) {
+    invalid('Enter a renewal cycle between 1 and 120 months.', 'defaultRenewalMonths');
+  }
+}
+
+/** Adds a requirement for this type to every property it applies to that does not have one yet. Returns how many were added. */
+function attachToProperties(db: MockDb, type: ComplianceType): number {
+  if (!type.active) return 0;
+  let added = 0;
+  for (const p of db.properties.filter((x) => type.applicableTo.includes(x.type))) {
+    if (db.requirements.some((r) => r.propertyId === p._id && r.complianceTypeId === type._id)) continue;
+    db.requirements.push({ _id: newId('req'), propertyId: p._id, complianceTypeId: type._id, applicability: 'applicable', status: 'missing' });
+    added += 1;
+  }
+  return added;
+}
+
+const typeSnapshot = (t: ComplianceType) => ({
+  name: t.name,
+  category: t.category,
+  applicableTo: t.applicableTo.join(', '),
+  defaultRenewalMonths: t.defaultRenewalMonths,
+  storeOnly: t.storeOnly,
+  affectsRag: t.affectsRag,
+  active: t.active,
+  sortOrder: t.sortOrder,
+  legislationVersion: t.legislationRefs[t.legislationRefs.length - 1]?.version,
+});
+
+const addedToMessage = (n: number) => (n ? ` and added to ${n} propert${n === 1 ? 'y' : 'ies'}` : '');
+
 export const complianceTypesService = {
   list(q: { active?: boolean } = {}) {
     if (!USE_MOCKS) return http.get<ComplianceType[]>('/compliance-types', q);
@@ -246,7 +286,8 @@ export const complianceTypesService = {
     );
   },
 
-  create(input: Pick<ComplianceType, 'name' | 'code' | 'category' | 'applicableTo' | 'defaultRenewalMonths' | 'storeOnly'> & { legislation?: string; sortOrder?: number }) {
+  /** Org Admin adds a document type. It is attached to every existing property of the chosen types straight away. */
+  create(input: ComplianceTypeInput) {
     if (!USE_MOCKS) return http.post<ComplianceType>('/compliance-types', input);
     return mockCall(
       () =>
@@ -256,7 +297,7 @@ export const complianceTypesService = {
           if (!input.code?.trim()) invalid('Enter a short code.', 'code');
           if (!input.applicableTo?.length) invalid('Choose at least one property type.', 'applicableTo');
           if (db.complianceTypes.some((t) => t.code.toLowerCase() === input.code?.trim().toLowerCase())) invalid('That code is already used.', 'code');
-          if (!input.storeOnly && (!input.defaultRenewalMonths || input.defaultRenewalMonths < 1)) invalid('Enter renewal months (1 or more).', 'defaultRenewalMonths');
+          validateRenewal(input.storeOnly, input.defaultRenewalMonths);
           const actor = mockStore.actor();
           const type: ComplianceType = {
             _id: newId('ct'),
@@ -265,24 +306,29 @@ export const complianceTypesService = {
             code: input.code.trim().toUpperCase(),
             category: input.category?.trim() || 'Other',
             applicableTo: input.applicableTo,
-            defaultRenewalMonths: input.storeOnly ? null : input.defaultRenewalMonths,
+            defaultRenewalMonths: input.storeOnly ? null : input.defaultRenewalMonths ?? null,
             storeOnly: input.storeOnly,
+            affectsRag: input.affectsRag ?? true,
             legislationRefs: input.legislation?.trim() ? [{ version: 1, text: input.legislation.trim(), effectiveFrom: new Date().toISOString(), editedBy: actor.name }] : [],
             sortOrder: input.sortOrder ?? db.complianceTypes.length + 1,
             active: true,
           };
           db.complianceTypes.push(type);
-          writeAudit(db, 'create', 'compliance_type', type._id, `Added compliance type ${type.name}`, {
-            after: { name: type.name, code: type.code, category: type.category, defaultRenewalMonths: type.defaultRenewalMonths, storeOnly: type.storeOnly },
+          const added = attachToProperties(db, type);
+          writeAudit(db, 'create', 'compliance_type', type._id, `Added document type ${type.name}${addedToMessage(added)}`, {
+            after: { code: type.code, ...typeSnapshot(type) },
           });
-          return { data: type, message: 'Compliance type added', statusCode: 201 };
+          return { data: type, message: `Document type added${addedToMessage(added)}`, statusCode: 201 };
         }),
       { kind: 'write' },
     );
   },
 
   /** Editing the legislation text creates a new version (history is kept). */
-  update(id: string, input: Partial<Pick<ComplianceType, 'name' | 'category' | 'applicableTo' | 'defaultRenewalMonths' | 'storeOnly' | 'active' | 'sortOrder'>> & { legislation?: string }) {
+  update(
+    id: string,
+    input: Partial<Pick<ComplianceType, 'name' | 'category' | 'applicableTo' | 'defaultRenewalMonths' | 'storeOnly' | 'affectsRag' | 'active' | 'sortOrder'>> & { legislation?: string },
+  ) {
     if (!USE_MOCKS) return http.patch<ComplianceType>(`/compliance-types/${id}`, input);
     return mockCall(
       () =>
@@ -291,33 +337,19 @@ export const complianceTypesService = {
           const t = db.complianceTypes.find((x) => x._id === id) ?? notFound('Compliance type');
           if (input.name !== undefined && !input.name.trim()) invalid('Enter a name.', 'name');
           if (input.applicableTo !== undefined && !input.applicableTo.length) invalid('Choose at least one property type.', 'applicableTo');
-          const before = {
-            name: t.name,
-            category: t.category,
-            defaultRenewalMonths: t.defaultRenewalMonths,
-            storeOnly: t.storeOnly,
-            active: t.active,
-            sortOrder: t.sortOrder,
-            legislationVersion: t.legislationRefs[t.legislationRefs.length - 1]?.version,
-          };
+          validateRenewal(input.storeOnly ?? t.storeOnly, input.defaultRenewalMonths);
+          const before = typeSnapshot(t);
           const { legislation, ...rest } = input;
           Object.assign(t, rest);
           if (t.storeOnly) t.defaultRenewalMonths = null;
+          // Wider "applicable to" or reactivation: attach to the properties that do not have it yet.
+          const added = attachToProperties(db, t);
           const latest = t.legislationRefs[t.legislationRefs.length - 1];
           if (legislation !== undefined && legislation.trim() && legislation.trim() !== latest?.text) {
             t.legislationRefs.push({ version: (latest?.version ?? 0) + 1, text: legislation.trim(), effectiveFrom: new Date().toISOString(), editedBy: mockStore.actor().name });
           }
-          const after = {
-            name: t.name,
-            category: t.category,
-            defaultRenewalMonths: t.defaultRenewalMonths,
-            storeOnly: t.storeOnly,
-            active: t.active,
-            sortOrder: t.sortOrder,
-            legislationVersion: t.legislationRefs[t.legislationRefs.length - 1]?.version,
-          };
-          writeAudit(db, 'update', 'compliance_type', id, `Updated compliance type ${t.name}`, { before, after });
-          return { data: t, message: 'Compliance type updated', statusCode: 200 };
+          writeAudit(db, 'update', 'compliance_type', id, `Updated document type ${t.name}${addedToMessage(added)}`, { before, after: typeSnapshot(t) });
+          return { data: t, message: `Document type updated${addedToMessage(added)}`, statusCode: 200 };
         }),
       { kind: 'write' },
     );

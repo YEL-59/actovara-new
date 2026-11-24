@@ -19,8 +19,8 @@ type Dialog = 'verify' | 'request_more' | 'request_verify' | 'note' | 'evidence'
 
 /**
  * Row/card lifecycle menu for the Actions tab: verify & close, request more evidence,
- * request verification, progress note, upload evidence and reopen — reusing the same
- * modals and service rules as the action record page.
+ * submit for verification (with evidence or by written confirmation), progress note,
+ * upload evidence and reopen — reusing the same modals and service rules as the action record page.
  */
 export function ActionQuickActions({
   action,
@@ -48,14 +48,8 @@ export function ActionQuickActions({
     setLoading(source);
     try {
       const res = await actionsService.get(action._id);
-      const valid = res.data.evidence.filter((e) => e.status !== 'rejected');
       setCurrent(res.data.action);
       setEvidence(res.data.evidence);
-      if (next === 'request_verify' && valid.length === 0) {
-        toast.error('Upload evidence first', 'At least one piece of evidence is needed before requesting verification.');
-        setDialog('evidence');
-        return;
-      }
       setDialog(next);
     } catch (err) {
       toast.error('Could not load action', errorMessage(err));
@@ -73,7 +67,7 @@ export function ActionQuickActions({
   }
   if ((action.status === 'open' || action.status === 'in_progress') && canWrite) {
     items.push(
-      { label: 'Request verification', icon: <Send />, onSelect: () => openWithDetail('request_verify') },
+      { label: 'Submit for verification', icon: <Send />, onSelect: () => openWithDetail('request_verify') },
       { label: 'Add progress note', icon: <MessageSquarePlus />, onSelect: () => openWithDetail('note') },
       { label: 'Upload evidence', icon: <FilePlus2 />, onSelect: () => openWithDetail('evidence') },
     );
@@ -129,6 +123,7 @@ export function ActionQuickActions({
         evidenceCount={evidence.filter((e) => e.status !== 'rejected').length}
         onClose={close}
         onDone={done}
+        onUploadEvidence={() => setDialog('evidence')}
       />
       <ProgressNoteModal open={dialog === 'note'} action={current} onClose={close} onDone={done} />
       <UploadEvidenceModal open={dialog === 'evidence'} action={current} onClose={close} onDone={done} />

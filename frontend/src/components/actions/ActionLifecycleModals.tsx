@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { FileCheck2, PenLine } from 'lucide-react';
 import {
   Alert,
   Button,
@@ -13,9 +14,28 @@ import {
   Textarea,
   useToast,
 } from '@/components/ui';
-import { formatFileSize } from '@/lib/format';
+import { formatDateTime, formatFileSize } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { actionsService, errorMessage, isApiError, teamService } from '@/services';
-import type { ActionView, Evidence, User } from '@/types/domain';
+import type { ActionView, CompletionMethod, Evidence, User } from '@/types/domain';
+
+/** "Completed by written confirmation by James Patel · 22 Nov 2026, 10:14" plus the owner's note. */
+export function CompletionSummary({ action, className }: { action: ActionView; className?: string }) {
+  if (!action.completion) return null;
+  const { method, note, completedAt } = action.completion;
+  return (
+    <div className={cn('rounded-xl border border-line bg-canvas p-3.5', className)}>
+      <p className="flex flex-wrap items-center gap-x-1.5 text-meta font-semibold text-ink-muted">
+        {method === 'confirmation' ? <PenLine className="h-3.5 w-3.5" aria-hidden /> : <FileCheck2 className="h-3.5 w-3.5" aria-hidden />}
+        Completed {method === 'confirmation' ? 'by written confirmation' : 'with evidence'}
+        <span>
+          · {action.completedByName ?? 'Owner'} · {formatDateTime(completedAt)}
+        </span>
+      </p>
+      <p className="mt-1 whitespace-pre-line text-sm text-ink">{note}</p>
+    </div>
+  );
+}
 
 function useModalForm(open: boolean) {
   const [error, setError] = useState<string | null>(null);
@@ -208,35 +228,104 @@ export function UploadEvidenceModal({
   );
 }
 
-/* ------------------------- 3. Request verification ------------------------ */
+/* ---------------------- 3. Submit for verification ------------------------ */
+function MethodOption({
+  value,
+  selected,
+  disabled,
+  title,
+  description,
+  icon,
+  onSelect,
+}: {
+  value: CompletionMethod;
+  selected: boolean;
+  disabled?: boolean;
+  title: string;
+  description: React.ReactNode;
+  icon: React.ReactNode;
+  onSelect: (v: CompletionMethod) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        'flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-1',
+        selected ? 'border-brand-600 bg-brand-50' : 'border-line bg-surface hover:bg-canvas',
+        disabled && 'cursor-not-allowed opacity-60 hover:bg-surface',
+      )}
+    >
+      <input
+        type="radio"
+        name="completion-method"
+        value={value}
+        checked={selected}
+        disabled={disabled}
+        onChange={() => onSelect(value)}
+        className="mt-1 h-4 w-4 shrink-0 accent-brand-600"
+      />
+      <span className="min-w-0">
+        <span className="flex items-center gap-1.5 text-[15px] font-semibold text-ink [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-brand-600">
+          {icon}
+          {title}
+        </span>
+        <span className="mt-0.5 block text-meta text-ink-muted">{description}</span>
+      </span>
+    </label>
+  );
+}
+
+/**
+ * Owner marks the action complete and submits it for Org Admin verification, either with evidence
+ * (files already uploaded) or by written confirmation (completion note only). Both keep the
+ * verification step and record who completed it and when.
+ */
 export function RequestVerificationModal({
   open,
   action,
   evidenceCount,
   onClose,
   onDone,
+  onUploadEvidence,
 }: {
   open: boolean;
   action: ActionView;
   evidenceCount: number;
   onClose: () => void;
   onDone: () => void;
+  /** Switches to the upload dialog when the owner picks "with evidence" but has not uploaded anything yet. */
+  onUploadEvidence?: () => void;
 }) {
   const toast = useToast();
   const form = useModalForm(open);
+  const confirmationAllowed = !action.evidenceRequired;
+  const [method, setMethod] = useState<CompletionMethod>('evidence');
   const [note, setNote] = useState('');
 
   useEffect(() => {
-    if (open) setNote('');
-  }, [open]);
+    if (!open) return;
+    setNote('');
+    setMethod(evidenceCount > 0 || !confirmationAllowed ? 'evidence' : 'confirmation');
+  }, [open, evidenceCount, confirmationAllowed]);
+
+  const needsUpload = method === 'evidence' && evidenceCount === 0;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     form.setError(null);
+    if (needsUpload) {
+      form.setError(
+        confirmationAllowed
+          ? 'Upload at least one evidence file first, or choose "By confirmation".'
+          : 'This action requires evidence. Upload at least one file first.',
+      );
+      return;
+    }
+    if (!note.trim()) return form.setFieldErrors({ note: 'Write a completion note.' });
+    form.setFieldErrors({});
     form.setSaving(true);
     try {
-      const res = await actionsService.requestVerification(action._id, { note: note.trim() || undefined });
-      toast.success(res.message ?? 'Sent for verification');
+      const res = await actionsService.requestVerification(action._id, { method, note: note.trim() });
+      toast.success(res.message ?? 'Sent for verification', 'An Org Admin will review and close it.');
       onDone();
       onClose();
     } catch (err) {
@@ -250,31 +339,84 @@ export function RequestVerificationModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Request verification"
-      description={`${action.reference} · ${evidenceCount} evidence item${evidenceCount === 1 ? '' : 's'} attached`}
+      title="Submit for verification"
+      description={`${action.reference} · ${action.title}`}
+      size="lg"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={form.saving}>
             Cancel
           </Button>
-          <Button type="submit" form="request-verification-form" isLoading={form.saving}>
-            Send for verification
+          <Button type="submit" form="request-verification-form" isLoading={form.saving} disabled={needsUpload}>
+            Submit for verification
           </Button>
         </>
       }
     >
       <form id="request-verification-form" onSubmit={submit} noValidate className="space-y-4">
-        {form.error && <Alert tone="error" title="Could not request verification">{form.error}</Alert>}
-        <p className="text-sm text-ink-muted">
-          An Org Admin will review the attached evidence and either verify and close the action or return it for further evidence.
-        </p>
+        {form.error && <Alert tone="error" title="Could not submit for verification">{form.error}</Alert>}
+
+        <fieldset className="space-y-2">
+          <legend className="mb-2 text-sm font-medium text-ink">How was this action completed?</legend>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <MethodOption
+              value="evidence"
+              selected={method === 'evidence'}
+              onSelect={setMethod}
+              icon={<FileCheck2 />}
+              title="With evidence"
+              description={
+                evidenceCount > 0
+                  ? `${evidenceCount} file${evidenceCount === 1 ? '' : 's'} attached for the verifier to review.`
+                  : 'Photos or documents uploaded to this action.'
+              }
+            />
+            <MethodOption
+              value="confirmation"
+              selected={method === 'confirmation'}
+              disabled={!confirmationAllowed}
+              onSelect={setMethod}
+              icon={<PenLine />}
+              title="By confirmation"
+              description={confirmationAllowed ? 'A written completion note. No files needed.' : 'Not available: evidence is required for this action.'}
+            />
+          </div>
+        </fieldset>
+
+        {needsUpload && (
+          <Alert tone="warning" title="No evidence uploaded yet">
+            {confirmationAllowed
+              ? 'Upload a photo or document first, or choose "By confirmation" to close it with a written note.'
+              : 'This action was set to require evidence. Upload at least one photo or document first.'}
+            {onUploadEvidence && (
+              <button
+                type="button"
+                onClick={onUploadEvidence}
+                className="focus-ring mt-2 block rounded text-sm font-semibold text-brand-600 hover:underline"
+              >
+                Upload evidence now
+              </button>
+            )}
+          </Alert>
+        )}
+
         <Textarea
-          label="Handover note (optional)"
+          label="Completion note"
+          required
           rows={3}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Summary for the verifier (e.g. All works completed and tested on site)…"
+          error={form.fieldErrors.note}
+          placeholder={
+            method === 'confirmation'
+              ? 'e.g. Rubbish has been cleared from the storage area on 22/11/2026.'
+              : 'e.g. Door closer replaced and tested by the contractor on 22/11/2026. Photos attached.'
+          }
+          hint="Say what was done and when. Your name and the submission date are recorded with it."
         />
+        <p className="text-sm text-ink-muted">
+          An Org Admin will review it and either verify and close the action or return it to you with a reason.
+        </p>
       </form>
     </Modal>
   );
@@ -303,12 +445,15 @@ export function VerifyActionModal({
   const [summary, setSummary] = useState('');
   const [reason, setReason] = useState('');
   const [acceptedIds, setAcceptedIds] = useState<string[]>([]);
+  const [requireEvidence, setRequireEvidence] = useState(true);
+  const byConfirmation = action.completion?.method === 'confirmation';
 
   useEffect(() => {
     if (!open) return;
     setDecision(initialDecision);
     setSummary('');
     setReason('');
+    setRequireEvidence(true);
     setAcceptedIds(evidence.filter((e) => e.status !== 'rejected').map((e) => e._id));
   }, [open, evidence, initialDecision]);
 
@@ -322,7 +467,7 @@ export function VerifyActionModal({
     const errs: Record<string, string> = {};
     if (decision === 'accept') {
       if (!summary.trim()) errs.summary = 'Write a closure summary.';
-      if (!acceptedIds.length) errs.acceptedEvidenceIds = 'Accept at least one piece of evidence.';
+      if (!byConfirmation && !acceptedIds.length) errs.acceptedEvidenceIds = 'Accept at least one piece of evidence.';
     } else if (!reason.trim()) {
       errs.reason = 'Say what further evidence is needed.';
     }
@@ -336,6 +481,7 @@ export function VerifyActionModal({
         summary: decision === 'accept' ? summary.trim() : undefined,
         reason: decision === 'request_more' ? reason.trim() : undefined,
         acceptedEvidenceIds: decision === 'accept' ? acceptedIds : [],
+        requireEvidence: decision === 'request_more' && !action.evidenceRequired ? requireEvidence : undefined,
       });
       toast.success(res.message ?? (decision === 'accept' ? 'Action closed' : 'Returned for more evidence'));
       onDone();
@@ -372,6 +518,7 @@ export function VerifyActionModal({
     >
       <form id="verify-action-form" onSubmit={submit} noValidate className="space-y-4">
         {form.error && <Alert tone="error" title="Could not complete verification">{form.error}</Alert>}
+        <CompletionSummary action={action} />
         <SegmentedControl<'accept' | 'request_more'>
           label="Verification decision"
           value={decision}
@@ -385,9 +532,11 @@ export function VerifyActionModal({
         {decision === 'accept' ? (
           <>
             <div className="space-y-2">
-              <p className="text-sm font-medium text-ink">Evidence to accept</p>
+              <p className="text-sm font-medium text-ink">Evidence to accept{byConfirmation ? ' (optional)' : ''}</p>
               {evidence.length === 0 ? (
-                <p className="text-sm text-ink-muted">No evidence uploaded.</p>
+                <p className="text-sm text-ink-muted">
+                  {byConfirmation ? 'No evidence attached. The owner confirmed completion in writing (see the note above).' : 'No evidence uploaded.'}
+                </p>
               ) : (
                 <ul className="divide-y divide-line rounded-xl border border-line bg-canvas">
                   {evidence.map((ev) => (
@@ -419,15 +568,27 @@ export function VerifyActionModal({
             />
           </>
         ) : (
-          <Textarea
-            label="What further evidence is needed?"
-            required
-            rows={4}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            error={form.fieldErrors.reason}
-            placeholder="Explain clearly what the owner needs to provide before re-submitting…"
-          />
+          <>
+            <Textarea
+              label="What further evidence is needed?"
+              required
+              rows={4}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              error={form.fieldErrors.reason}
+              placeholder="Explain clearly what the owner needs to provide before re-submitting…"
+            />
+            {action.evidenceRequired ? (
+              <p className="text-meta text-ink-muted">Evidence is already required for this action.</p>
+            ) : (
+              <Checkbox
+                label="Require evidence when it is resubmitted"
+                description="The owner will no longer be able to close it by written confirmation."
+                checked={requireEvidence}
+                onChange={(e) => setRequireEvidence(e.target.checked)}
+              />
+            )}
+          </>
         )}
       </form>
     </Modal>
