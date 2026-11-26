@@ -111,8 +111,13 @@ export interface Action {
   isOverdue: boolean;
   /** When true the owner must attach evidence; otherwise a written completion note is enough. */
   evidenceRequired: boolean;
-  /** Latest submission for verification: who completed the work, how, and their note. Cleared on reopen or return. */
-  completion?: { method: CompletionMethod; note: string; completedBy: string; completedAt: string };
+  /**
+   * Latest submission for verification: who completed the work, how, and their note. Cleared on reopen or return.
+   * `externalContact` is set when an external contact completed it through a secure link (`completedBy` = the link id).
+   */
+  completion?: { method: CompletionMethod; note: string; completedBy: string; completedAt: string; externalContact?: string };
+  /** Reference photos/documents added when the action was raised (or later). Not completion evidence. */
+  attachments?: ActionAttachment[];
   closure?: { verifiedBy: string; verifiedAt: string; summary: string };
   reopenCount: number;
   createdAt: string;
@@ -164,6 +169,63 @@ export interface User {
   createdAt: string;
 }
 
+export interface ActionAttachment {
+  _id: string;
+  file: FileSummary;
+  description?: string;
+  uploadedBy: { _id: string; name: string };
+  createdAt: string;
+}
+
+export type ExternalContactRole = 'contractor' | 'facilities_manager' | 'landlord' | 'tenant' | 'resident' | 'other';
+
+/**
+ * Secure link that sends one action to an external contact (no Actovara account). The token is only in
+ * the email; the server keeps a hash (like landlord share links).
+ */
+export interface ActionLink {
+  _id: string;
+  actionId: string;
+  contact: { name: string; email: string; role: ExternalContactRole; company?: string };
+  message?: string;
+  /** Whether the contact may upload photos/documents as completion evidence. */
+  allowEvidence: boolean;
+  tokenHint: string;
+  expiresAt: string;
+  createdBy: { _id: string; name: string };
+  createdAt: string;
+  emailStatus: 'sent' | 'delivered' | 'bounced';
+  revokedAt?: string;
+  revokedBy?: { _id: string; name: string };
+  accessCount: number;
+  lastAccessedAt?: string;
+}
+
+/** What the external contact sees at `/action-link/:token`. No owners, internal notes or other actions. */
+export interface PublicActionView {
+  organisationName: string;
+  propertyName: string;
+  /** Address line, town and postcode so a contractor can find the site. */
+  address: string;
+  reference: string;
+  title: string;
+  description?: string;
+  priority: Priority;
+  dueDate: string;
+  status: ActionStatus;
+  /** Message the property manager wrote when sending the link. */
+  message?: string;
+  contactName: string;
+  allowEvidence: boolean;
+  evidenceRequired: boolean;
+  expiresAt: string;
+  attachments: { _id: string; name: string; mimeType: string; sizeBytes: number; description?: string }[];
+  /** The external conversation only: what was sent, the contact's comments and submissions, returns and closure. */
+  history: { _id: string; at: string; author: string; kind: 'sent' | 'comment' | 'evidence' | 'submitted' | 'returned' | 'closed'; body?: string }[];
+  /** True while the contact's completion is waiting for the property manager. */
+  awaitingReview: boolean;
+}
+
 export type ActionUpdateType =
   | 'created'
   | 'note'
@@ -174,7 +236,11 @@ export type ActionUpdateType =
   | 'verified'
   | 'reopened'
   | 'due_date_changed'
-  | 'reassigned';
+  | 'reassigned'
+  | 'attachment_added'
+  | 'sent_to_contact'
+  | 'external_link_revoked'
+  | 'external_comment';
 
 export interface ActionUpdate {
   _id: string;
@@ -184,6 +250,8 @@ export interface ActionUpdate {
   body?: string;
   /** Set on `verification_requested` entries. */
   completionMethod?: CompletionMethod;
+  /** Written by an external contact through a secure link (author `_id` is the link id). */
+  external?: boolean;
   fromStatus?: ActionStatus;
   toStatus?: ActionStatus;
   createdAt: string;
@@ -204,6 +272,8 @@ export interface Evidence {
   description: string;
   status: 'submitted' | 'accepted' | 'rejected';
   uploadedBy: { _id: string; name: string };
+  /** Uploaded by an external contact through a secure action link. */
+  external?: boolean;
   reviewedBy?: { _id: string; name: string };
   reviewedAt?: string;
   createdAt: string;
@@ -324,7 +394,7 @@ export interface PublicShareView {
   openActions: { title: string; dueDate: string }[];
 }
 
-export type NotificationType = 'cert_expiry' | 'action_overdue' | 'action_assigned' | 'invite' | 'password_reset';
+export type NotificationType = 'cert_expiry' | 'action_overdue' | 'action_assigned' | 'action_external' | 'invite' | 'password_reset';
 
 export interface NotificationLog {
   _id: string;
@@ -361,7 +431,8 @@ export interface AuditEvent {
   orgId: string | null;
   actorId: string;
   actorName: string;
-  actorRole: Role;
+  /** `external` = a contact acting through a secure action link (no Actovara account). */
+  actorRole: Role | 'external';
   action: AuditActionVerb;
   entityType: 'property' | 'certificate' | 'action' | 'report' | 'share_link' | 'user' | 'organisation' | 'compliance_type' | 'session';
   entityId?: string;

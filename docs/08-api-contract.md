@@ -87,6 +87,24 @@
 - Every transition writes an `ActionUpdate` (timeline, with `fromStatus`/`toStatus`, author and reason) and an audit-log entry (the submission entry names the completion method).
 - Report snapshot `actions[]` adds `completionMethod?`, `completionNote?`, `completedByName?`.
 
+### 2.8 Actovara — Action Attachments & External Action Links
+> Client request 26 Nov 2026 (TASK-MOD-002). Mirrors `frontend/src/services/actions.service.ts` (attachments) and `frontend/src/services/action-links.service.ts` (external links). Same security model as landlord share links: 32-byte random token, only its hash stored, expiry, withdrawal, access count, no indexing, `Referrer-Policy: no-referrer`.
+- **Attachments (reference files when raising an action):** `Action.attachments[] { _id, file: FileSummary, description?, uploadedBy, createdAt }`. They are separate from completion `Evidence`.
+  - `POST /api/actions/:id/attachments`: multipart (`file`, `description?`) -> `ActionAttachment` (`action.write`; 409 if closed). The create form uploads them straight after `POST /api/actions`.
+  - `GET /api/actions/:id/files/:fileId` -> `SignedFileUrl` (attachment or evidence file of that action).
+- **External links (signed in):** `ActionLink { _id, actionId, contact { name, email, role: contractor|facilities_manager|landlord|tenant|resident|other, company? }, message?, allowEvidence, tokenHint, expiresAt, createdBy, createdAt, emailStatus, revokedAt?, revokedBy?, accessCount, lastAccessedAt? }`.
+  - `GET /api/actions/:id/external-links` -> `ActionLink[]`.
+  - `POST /api/actions/:id/external-links`: `{ name, email, role, company?, message?, days (1–90), allowEvidence }` -> `{ link, url }` (`action.write`; 409 if closed). Sends the email (NotificationLog `type: 'action_external'`) and logs a `sent_to_contact` timeline entry and an audit event. `allowEvidence` is forced on when `evidenceRequired`. The full URL is returned once only.
+  - `POST /api/external-links/:id/revoke` -> `ActionLink` (`action.write`). Logs `external_link_revoked`.
+- **External links (public, token only, no account):**
+  - `GET /api/public/action-links/:token` -> `PublicActionView`: organisation, property name and address, reference, title, description, priority, due date, status, message, attachments, the external conversation history, `awaitingReview`. Owners, internal notes, other actions and other contacts are never included. 404 for an unknown token; 410 when withdrawn, expired or no longer available.
+  - `POST …/:token/comments` `{ body }` -> `PublicActionView`. Logs `external_comment` (`ActionUpdate.external = true`, author = contact). 409 if closed.
+  - `POST …/:token/evidence` multipart (`file`, `description`) -> `PublicActionView`. Creates `Evidence { external: true }`. 409 when uploads are not allowed, the action is closed, or it is awaiting verification.
+  - `POST …/:token/complete` `{ note }` -> `PublicActionView`. Records `completion { method: evidence|confirmation, note, completedBy: <linkId>, completedAt, externalContact }` and moves the action to `awaiting_verification`. The Org Admin then verifies or returns it via §2.6 as normal. 409 when `evidenceRequired` and no evidence exists.
+  - `GET …/:token/files/:fileId` -> `SignedFileUrl` (attachments only).
+- **Audit:** public writes record `actorRole: 'external'` with the contact's name.
+- **Backend notes:** use a transactional email provider (sender domain with SPF/DKIM). Rate-limit public endpoints per token and IP. Scan uploads for malware like other uploads. Bounce webhooks update `emailStatus`.
+
 ### 2.7 Actovara — Document Types Catalogue (`compliance-types`)
 > Mirrors `complianceTypesService` in `frontend/src/services/certificates.service.ts`. Shown in the UI as **Settings → Document Types**. Org Admins (`catalogue.manage`) add and manage organisation document types (`orgId` = their org) alongside the global statutory catalogue (`orgId: null`, Platform Admin).
 - **`ComplianceType` fields:** `name`, `code` (unique, immutable), `category` (free text; UI suggests existing + defaults), `applicableTo: PropertyType[]`, `defaultRenewalMonths: number | null`, `storeOnly: boolean`, **`affectsRag: boolean`** (new, default `true`), `legislationRefs[]` (versioned), `sortOrder`, `active`.

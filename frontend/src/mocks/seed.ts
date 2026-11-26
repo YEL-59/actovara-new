@@ -6,6 +6,7 @@
 import { hashPassword } from './auth';
 import type {
   Action,
+  ActionLink,
   ActionStatus,
   ActionUpdate,
   AuditEvent,
@@ -28,7 +29,7 @@ import { buildReportSnapshot } from './helpers';
 import { addMonths, daysFrom, prng, yyyymmdd } from './time';
 import type { MockDb } from './types';
 
-export const MOCK_DB_VERSION = 6;
+export const MOCK_DB_VERSION = 7;
 
 /**
  * Fixed public tokens for the seeded landlord links, so the demo can open `/share/<token>`.
@@ -40,6 +41,8 @@ export const DEMO_SHARE_TOKENS: Record<string, string> = {
   shl_3: 'demo-landlord-revoked-Zt4wRb',
 };
 export const DEMO_SHARE_PASSWORD = 'Landlord-2026';
+/** Fixed token for the seeded external contractor link on ACT-0012 (`/action-link/<token>`). */
+export const DEMO_ACTION_LINK_TOKEN = 'demo-contractor-link-Hk82Qa';
 const ORG_ID = 'org_demo';
 const DOMAIN = 'demolettings.example';
 
@@ -439,6 +442,38 @@ export function buildSeed(now: Date = new Date()): MockDb {
     actions.push(action);
   });
 
+  /*
+   * External action link demo (client request, 26 Nov 2026): ACT-0012 was raised with the inspection
+   * photo and test sheet attached, then emailed to an external electrical contractor who replied.
+   */
+  const extAction = actions.find((a) => a._id === 'act_012')!;
+  const raisedAt = extAction.createdAt;
+  extAction.attachments = [
+    { _id: 'att_012_1', file: { _id: 'file_att_012_1', name: 'inspection-photo-building2-landing.jpg', mimeType: 'image/jpeg', sizeBytes: 1_840_000, scanStatus: 'clean' }, description: 'Inspection photo: failed emergency lights on the Building 2 stair landing', uploadedBy: ref(OLIVIA), createdAt: raisedAt },
+    { _id: 'att_012_2', file: { _id: 'file_att_012_2', name: 'elt-test-sheet-building2.pdf', mimeType: 'application/pdf', sizeBytes: 412_000, scanStatus: 'clean' }, description: 'Annual test sheet listing the 6 failed units', uploadedBy: ref(OLIVIA), createdAt: raisedAt },
+  ];
+  const linkSent = past(d(-1, 9), 120);
+  const extLink: ActionLink = {
+    _id: 'alk_demo_1',
+    actionId: extAction._id,
+    contact: { name: 'Dan Price', email: 'dan.price@brightline.example', role: 'contractor', company: 'Brightline Electrical (fictitious)' },
+    message: 'Hi Dan, please replace the emergency lighting batteries in Building 2 (6 units, see the test sheet). Upload a photo of the test once done.',
+    allowEvidence: true,
+    tokenHint: DEMO_ACTION_LINK_TOKEN.slice(-6),
+    expiresAt: d(13, 23),
+    createdBy: ref(OLIVIA),
+    createdAt: linkSent,
+    emailStatus: 'delivered',
+    accessCount: 2,
+    lastAccessedAt: past(d(0, 8), 90),
+  };
+  const extName = 'Dan Price (Contractor, Brightline Electrical (fictitious))';
+  actionUpdates.push(
+    { _id: 'upd_012_att', actionId: extAction._id, author: ref(OLIVIA), type: 'attachment_added', body: 'inspection-photo-building2-landing.jpg, elt-test-sheet-building2.pdf', createdAt: raisedAt },
+    { _id: 'upd_012_sent', actionId: extAction._id, author: ref(OLIVIA), type: 'sent_to_contact', body: `Sent by email to ${extName} at ${extLink.contact.email}. Message: ${extLink.message}`, createdAt: linkSent },
+    { _id: 'upd_012_ext1', actionId: extAction._id, author: { _id: extLink._id, name: extName }, type: 'external_comment', external: true, body: 'Batteries ordered. I can attend on site later this week, morning access please.', createdAt: past(d(0, 8), 90) },
+  );
+
   const db: MockDb = {
     version: MOCK_DB_VERSION,
     seededAt: now.toISOString(),
@@ -456,6 +491,8 @@ export function buildSeed(now: Date = new Date()): MockDb {
     shareLinks: [],
     shareAccesses: [],
     shareSecrets: [],
+    actionLinks: [extLink],
+    actionLinkSecrets: [{ actionLinkId: extLink._id, tokenHash: hashPassword(DEMO_ACTION_LINK_TOKEN) }],
     notifications: [],
     auditEvents: [],
     imports: [
@@ -574,6 +611,7 @@ export function buildSeed(now: Date = new Date()): MockDb {
     db.notifications.push({ _id: `ntf_${db.notifications.length + 1}`, userId: u._id, recipientEmail: u.email, type: 'action_overdue', subject: `${a.reference} is overdue: ${a.title}`, entityType: 'action', entityId: a._id, status: u._id === OLIVIA._id && a.priority === 'urgent' ? 'bounced' : 'delivered', sentAt: d(-1, 7), createdAt: d(-1, 7) });
   }
   db.notifications.push({ _id: `ntf_${db.notifications.length + 1}`, userId: 'usr_priya', recipientEmail: users[4]!.email, type: 'invite', subject: 'You have been invited to Demo Lettings Ltd on Actovara', entityType: 'user', entityId: 'usr_priya', status: 'sent', sentAt: d(-2, 14), createdAt: d(-2, 14) });
+  db.notifications.push({ _id: `ntf_${db.notifications.length + 1}`, recipientEmail: extLink.contact.email, type: 'action_external', subject: `Action ${extAction.reference} from Demo Lettings Ltd: ${extAction.title}`, entityType: 'action', entityId: extAction._id, status: 'delivered', sentAt: extLink.createdAt, createdAt: extLink.createdAt });
   db.notifications.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   /* Audit trail (append-only in production) */
@@ -627,6 +665,7 @@ export function buildSeed(now: Date = new Date()): MockDb {
       after: { code: t.code, category: t.category, defaultRenewalMonths: t.defaultRenewalMonths, storeOnly: t.storeOnly, affectsRag: t.affectsRag },
     });
   }
+  audit(OLIVIA, 'share', 'action', extAction._id, `Sent ${extAction.reference} to external contact ${extName} <${extLink.contact.email}>`, extLink.createdAt);
   audit(ADMIN, 'update', 'compliance_type', 'ct_fra', 'Updated Fire Risk Assessment legislation reference to v1', d(-12, 11), {
     before: { defaultRenewalMonths: 12, storeOnly: false },
     after: { defaultRenewalMonths: 12, storeOnly: false, legislationVersion: 1 },

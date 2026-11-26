@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, FilePlus2, Loader2, MessageSquarePlus, MoreHorizontal, RotateCcw, Send, ShieldCheck, Undo2 } from 'lucide-react';
+import { ArrowRight, FilePlus2, Loader2, Mail, MessageSquarePlus, MoreHorizontal, RotateCcw, Send, ShieldCheck, Undo2 } from 'lucide-react';
 import { Button, DropdownMenu, useToast, type MenuItem } from '@/components/ui';
 import { useSession } from '@/lib/session-mock';
 import { actionsService, errorMessage } from '@/services';
@@ -14,8 +14,9 @@ import {
   UploadEvidenceModal,
   VerifyActionModal,
 } from './ActionLifecycleModals';
+import { SendToContactModal } from './ExternalActionPanels';
 
-type Dialog = 'verify' | 'request_more' | 'request_verify' | 'note' | 'evidence' | 'reopen' | null;
+type Dialog = 'verify' | 'request_more' | 'request_verify' | 'note' | 'evidence' | 'reopen' | 'send' | null;
 
 /**
  * Row/card lifecycle menu for the Actions tab: verify & close, request more evidence,
@@ -70,6 +71,7 @@ export function ActionQuickActions({
       { label: 'Submit for verification', icon: <Send />, onSelect: () => openWithDetail('request_verify') },
       { label: 'Add progress note', icon: <MessageSquarePlus />, onSelect: () => openWithDetail('note') },
       { label: 'Upload evidence', icon: <FilePlus2 />, onSelect: () => openWithDetail('evidence') },
+      { label: 'Send to external contact', icon: <Mail />, onSelect: () => openWithDetail('send') },
     );
   }
   if (action.status === 'closed' && canVerify) {
@@ -128,6 +130,7 @@ export function ActionQuickActions({
       <ProgressNoteModal open={dialog === 'note'} action={current} onClose={close} onDone={done} />
       <UploadEvidenceModal open={dialog === 'evidence'} action={current} onClose={close} onDone={done} />
       <ReopenActionModal open={dialog === 'reopen'} action={current} onClose={close} onDone={done} />
+      <SendToContactModal open={dialog === 'send'} action={current} onClose={close} onDone={done} />
     </>
   );
 }

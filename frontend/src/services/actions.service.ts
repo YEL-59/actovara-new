@@ -1,8 +1,21 @@
 import { acceptUpload, actorRef, includesText, requirePermission, writeAudit, type UploadLike } from '@/mocks/helpers';
+import { mockFiles } from '@/mocks/files';
 import { mockStore } from '@/mocks/store';
 import { newId } from '@/mocks/time';
 import type { MockDb } from '@/mocks/types';
-import type { Action, ActionDetail, ActionStatus, ActionUpdate, ActionView, CompletionMethod, Evidence, Priority } from '@/types/domain';
+import type {
+  Action,
+  ActionAttachment,
+  ActionDetail,
+  ActionStatus,
+  ActionUpdate,
+  ActionView,
+  CompletionMethod,
+  Evidence,
+  FileSummary,
+  Priority,
+  SignedFileUrl,
+} from '@/types/domain';
 import { http } from './api';
 import { USE_MOCKS } from './config';
 import { conflict, invalid, mockCall, notFound, paginate } from './mock-adapter';
@@ -49,8 +62,28 @@ const view = (db: MockDb, a: Action): ActionView => ({
   propertyName: db.properties.find((p) => p._id === a.propertyId)?.name ?? '—',
   ownerName: userName(db, a.ownerId) ?? '—',
   verifiedByName: a.closure ? userName(db, a.closure.verifiedBy) ?? 'Org Admin' : undefined,
-  completedByName: a.completion ? userName(db, a.completion.completedBy) ?? '—' : undefined,
+  completedByName: a.completion ? a.completion.externalContact ?? userName(db, a.completion.completedBy) ?? '—' : undefined,
 });
+
+/** Short-lived object URL for an uploaded file (mock of the signed-URL endpoint). Seeded files get a stand-in page. */
+export function mockFileUrl(file: FileSummary, title: string): SignedFileUrl {
+  const stored = mockFiles.get(file._id);
+  const esc = (v: string) => v.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+  const blob =
+    stored ??
+    new Blob(
+      [
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(file.name)}</title></head>` +
+          `<body style="font:15px/1.5 system-ui,sans-serif;max-width:600px;margin:48px auto;padding:0 16px">` +
+          `<h1>${esc(title)}</h1><p>${esc(file.name)}</p><p style="background:#eef4fc;padding:12px;border-radius:8px">` +
+          'This demo file has no stored content. Once the backend is connected the original photo or document opens here.</p></body></html>',
+      ],
+      { type: 'text/html' },
+    );
+  const url = URL.createObjectURL(blob);
+  window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
+  return { url, expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(), fileName: file.name, mimeType: stored ? file.mimeType : 'text/html' };
+}
 
 export const completionLabel: Record<CompletionMethod, string> = {
   evidence: 'with evidence',
@@ -59,26 +92,32 @@ export const completionLabel: Record<CompletionMethod, string> = {
 
 const findAction = (db: MockDb, id: string) => db.actions.find((a) => a._id === id) ?? notFound('Action');
 
-function log(
+type UpdateExtra = Partial<Pick<ActionUpdate, 'completionMethod' | 'external' | 'author'>>;
+
+/** Timeline entry. `extra.author` overrides the signed-in user (used for external contacts). */
+export function logActionUpdate(
   db: MockDb,
   a: Action,
   type: ActionUpdate['type'],
   body?: string,
   fromStatus?: ActionStatus,
   toStatus?: ActionStatus,
-  extra: Pick<ActionUpdate, 'completionMethod'> = {},
+  extra: UpdateExtra = {},
 ) {
-  const u: ActionUpdate = { _id: newId('upd'), actionId: a._id, author: actorRef(), type, body, fromStatus, toStatus, ...extra, createdAt: new Date().toISOString() };
+  const u: ActionUpdate = { _id: newId('upd'), actionId: a._id, author: extra.author ?? actorRef(), type, body, fromStatus, toStatus, ...extra, createdAt: new Date().toISOString() };
   db.actionUpdates.push(u);
   a.updatedAt = u.createdAt;
   return u;
 }
 
-function transition(db: MockDb, a: Action, to: ActionStatus, type: ActionUpdate['type'], body?: string, extra?: Pick<ActionUpdate, 'completionMethod'>) {
+const log = logActionUpdate;
+
+export function transitionAction(db: MockDb, a: Action, to: ActionStatus, type: ActionUpdate['type'], body?: string, extra?: UpdateExtra) {
   const from = a.status;
   a.status = to;
   return log(db, a, type, body, from, to, extra);
 }
+const transition = transitionAction;
 
 const write = <T,>(fn: (db: MockDb) => { data: T; message: string }) =>
   mockCall(() => mockStore.mutate((db) => ({ ...fn(db), statusCode: 200 })), { kind: 'write' });
@@ -193,6 +232,44 @@ export const actionsService = {
       if (input.priority) a.priority = input.priority;
       writeAudit(db, 'update', 'action', id, `Updated ${a.reference}`);
       return { data: a, message: 'Action updated' };
+    });
+  },
+
+  /** Reference photo or document (e.g. an inspection photo), usually added when the action is raised. */
+  addAttachment(id: string, input: { file: File | UploadLike; description?: string }) {
+    if (!USE_MOCKS) {
+      const form = new FormData();
+      form.append('file', input.file as Blob);
+      if (input.description) form.append('description', input.description);
+      return http.upload<ActionAttachment>(`/actions/${id}/attachments`, form);
+    }
+    return write((db) => {
+      requirePermission('action.write');
+      const a = findAction(db, id);
+      if (a.status === 'closed') conflict('This action is closed.');
+      const att: ActionAttachment = {
+        _id: newId('att'),
+        file: acceptUpload(input.file),
+        description: input.description?.trim() || undefined,
+        uploadedBy: actorRef(),
+        createdAt: new Date().toISOString(),
+      };
+      a.attachments = [...(a.attachments ?? []), att];
+      log(db, a, 'attachment_added', att.description ? `${att.file.name}: ${att.description}` : att.file.name);
+      writeAudit(db, 'create', 'action', id, `Attachment added to ${a.reference}: ${att.file.name}`);
+      return { data: att, message: 'Attachment added' };
+    });
+  },
+
+  /** Signed link to an attachment or evidence file of this action. */
+  fileUrl(id: string, fileId: string) {
+    if (!USE_MOCKS) return http.get<SignedFileUrl>(`/actions/${id}/files/${fileId}`);
+    return mockCall<SignedFileUrl>(() => {
+      const db = mockStore.get();
+      const a = findAction(db, id);
+      const file =
+        a.attachments?.find((x) => x.file._id === fileId)?.file ?? db.evidence.find((e) => e.actionId === id && e.file._id === fileId)?.file ?? notFound('File');
+      return { data: mockFileUrl(file, `${a.reference} · ${a.title}`) };
     });
   },
 

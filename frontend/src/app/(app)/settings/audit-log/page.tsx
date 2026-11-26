@@ -6,7 +6,7 @@ import { AuditDiffModal, SettingsTableSkeleton } from '@/components/settings';
 import { Alert, Badge, Button, Card, DatePicker, EmptyState, Input, Pagination, Select, TD, TH, Table } from '@/components/ui';
 import { formatDateTime } from '@/lib/format';
 import { useApi } from '@/lib/hooks/useApi';
-import { roleLabel } from '@/lib/permissions';
+import { actorRoleLabel } from '@/lib/permissions';
 import { useSession } from '@/lib/session-mock';
 import { auditService, teamService } from '@/services';
 import type { AuditActionVerb, AuditEvent } from '@/types/domain';
@@ -203,7 +203,7 @@ export default function AuditLogSettingsPage() {
                 <p className="text-sm font-medium text-ink">{ev.summary}</p>
                 <div className="flex items-center justify-between text-meta text-ink-muted">
                   <span>
-                    {ev.actorName} ({roleLabel[ev.actorRole]})
+                    {ev.actorName} ({actorRoleLabel(ev.actorRole)})
                   </span>
                   <Button size="sm" variant="ghost" onClick={() => setSelectedEvent(ev)}>
                     View diff
@@ -232,7 +232,7 @@ export default function AuditLogSettingsPage() {
                     <TD className="whitespace-nowrap text-ink-muted">{formatDateTime(ev.createdAt)}</TD>
                     <TD>
                       <div className="font-medium text-ink">{ev.actorName}</div>
-                      <div className="text-meta text-ink-muted">{roleLabel[ev.actorRole]}</div>
+                      <div className="text-meta text-ink-muted">{actorRoleLabel(ev.actorRole)}</div>
                     </TD>
                     <TD>
                       <Badge tone={ev.action === 'login_failed' ? 'danger' : 'info'}>{ev.action}</Badge>

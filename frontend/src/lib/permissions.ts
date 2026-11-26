@@ -31,6 +31,9 @@ export function can(role: Role | undefined | null, permission: Permission): bool
   return !!role && MATRIX[role].includes(permission);
 }
 
+/** Audit-log label: an org role, or an external contact using a secure link. */
+export const actorRoleLabel = (r: Role | 'external') => (r === 'external' ? 'External contact' : roleLabel[r]);
+
 export const roleLabel: Record<Role, string> = {
   platform_admin: 'Platform Admin',
   org_admin: 'Org Admin',

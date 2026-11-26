@@ -2,7 +2,7 @@
 
 import { Badge, Button, Modal } from '@/components/ui';
 import { formatDateTime } from '@/lib/format';
-import { roleLabel } from '@/lib/permissions';
+import { actorRoleLabel } from '@/lib/permissions';
 import type { AuditEvent } from '@/types/domain';
 
 interface AuditDiffModalProps {
@@ -43,7 +43,7 @@ export function AuditDiffModal({ event, onClose }: AuditDiffModalProps) {
             <dt className="text-meta text-ink-muted">Actor</dt>
             <dd className="mt-0.5 font-medium text-ink">
               {event.actorName}{' '}
-              <span className="text-meta font-normal text-ink-muted">({roleLabel[event.actorRole]})</span>
+              <span className="text-meta font-normal text-ink-muted">({actorRoleLabel(event.actorRole)})</span>
             </dd>
           </div>
           <div>

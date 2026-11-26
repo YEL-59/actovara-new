@@ -10,8 +10,13 @@ import {
   CircleDot,
   FileCheck2,
   FilePlus2,
+  ExternalLink,
   FileText,
   Hourglass,
+  Link2Off,
+  Mail,
+  MessageCircle,
+  Paperclip,
   MessageSquarePlus,
   RotateCcw,
   Send,
@@ -21,7 +26,10 @@ import {
 } from 'lucide-react';
 import {
   ActionDetailSkeleton,
+  AttachmentsCard,
   CompletionSummary,
+  ExternalContactsCard,
+  useActionFile,
   DueDateModal,
   ProgressNoteModal,
   ReassignOwnerModal,
@@ -63,6 +71,10 @@ const UPDATE_META: Record<ActionUpdateType, { label: string; tone: Tone; icon: R
   reopened: { label: 'Reopened', tone: 'danger', icon: <RotateCcw /> },
   due_date_changed: { label: 'Due date changed', tone: 'neutral', icon: <CalendarClock /> },
   reassigned: { label: 'Reassigned', tone: 'neutral', icon: <UserCheck /> },
+  attachment_added: { label: 'Attachment added', tone: 'info', icon: <Paperclip /> },
+  sent_to_contact: { label: 'Sent to external contact', tone: 'purple', icon: <Mail /> },
+  external_link_revoked: { label: 'External link withdrawn', tone: 'neutral', icon: <Link2Off /> },
+  external_comment: { label: 'Comment from external contact', tone: 'purple', icon: <MessageCircle /> },
 };
 
 const EVIDENCE_STATUS: Record<Evidence['status'], { label: string; tone: Tone }> = {
@@ -97,8 +109,10 @@ export default function ActionDetailPage() {
 
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [togglingEvidence, setTogglingEvidence] = useState(false);
+  const [linksKey, setLinksKey] = useState(0);
 
   const detail = useApi(() => actionsService.get(id), [id]);
+  const files = useActionFile(id);
   if (detail.loading && !detail.data) {
     return <ActionDetailSkeleton />;
   }
@@ -164,7 +178,7 @@ export default function ActionDetailPage() {
     return {
       id: u._id,
       title: updateTitle(u),
-      meta: `${u.author.name} · ${formatDateTime(u.createdAt)}`,
+      meta: `${u.author.name}${u.external ? ' · external, via secure link' : ''} · ${formatDateTime(u.createdAt)}`,
       body: u.body,
       icon: meta.icon,
       tone: meta.tone,
@@ -297,6 +311,18 @@ export default function ActionDetailPage() {
             </dl>
           </Card>
 
+          <AttachmentsCard action={action} canEdit={canWrite && !isClosed} onChanged={detail.reload} />
+
+          <ExternalContactsCard
+            action={action}
+            canEdit={canWrite}
+            refreshKey={linksKey}
+            onChanged={() => {
+              setLinksKey((k) => k + 1);
+              detail.reload();
+            }}
+          />
+
           {/* Evidence panel */}
           <Card>
             <CardHeader
@@ -349,12 +375,24 @@ export default function ActionDetailPage() {
                         </div>
                         <p className="text-sm text-ink">{ev.description}</p>
                         <p className="text-meta text-ink-muted">
-                          Uploaded by {ev.uploadedBy.name} · {formatDateTime(ev.createdAt)}
+                          Uploaded by {ev.uploadedBy.name}
+                          {ev.external ? ' (external, via secure link)' : ''} · {formatDateTime(ev.createdAt)}
                         </p>
                       </div>
-                      <Badge tone={st.tone} dot className="self-start">
-                        {st.label}
-                      </Badge>
+                      <div className="flex items-center gap-2 self-start">
+                        <Badge tone={st.tone} dot>
+                          {st.label}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          leftIcon={<ExternalLink className="h-3.5 w-3.5" />}
+                          isLoading={files.openingId === ev.file._id}
+                          onClick={() => files.open(ev.file._id)}
+                        >
+                          View
+                        </Button>
+                      </div>
                     </li>
                   );
                 })}

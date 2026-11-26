@@ -1,5 +1,6 @@
 import type {
   Action,
+  ActionLink,
   ActionUpdate,
   AuditEvent,
   Certificate,
@@ -42,6 +43,10 @@ export interface MockDb {
   shareAccesses: ShareAccess[];
   /** Server-side only: hashed token + optional hashed password per link. Never returned by an API. */
   shareSecrets: ShareSecret[];
+  /** External action links (secure email links to contractors, landlords, tenants…). */
+  actionLinks: ActionLink[];
+  /** Server-side only: hashed token per action link. */
+  actionLinkSecrets: { actionLinkId: string; tokenHash: string }[];
   notifications: NotificationLog[];
   auditEvents: AuditEvent[];
   imports: ImportLog[];

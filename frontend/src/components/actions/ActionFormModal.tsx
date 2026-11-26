@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Alert, Button, Checkbox, DatePicker, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
+import { Alert, Button, Checkbox, DatePicker, FileDropzone, Input, Modal, Select, Textarea, useToast } from '@/components/ui';
 import { useSession } from '@/lib/session-mock';
 import { actionsService, certificatesService, errorMessage, isApiError, propertiesService, teamService } from '@/services';
 import type { Action, Priority, Property, User } from '@/types/domain';
@@ -56,6 +56,7 @@ export function ActionFormModal({
   const [dueDate, setDueDate] = useState('');
   const [certificateId, setCertificateId] = useState('');
   const [evidenceRequired, setEvidenceRequired] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -72,6 +73,7 @@ export function ActionFormModal({
     setDueDate('');
     setCertificateId(defaultCertificateId ?? '');
     setEvidenceRequired(false);
+    setAttachments([]);
     setErrors({});
     setFormError(null);
     teamService
@@ -134,7 +136,17 @@ export function ActionFormModal({
         dueDate,
         evidenceRequired,
       });
-      toast.success(res.message ?? 'Action created');
+      // Reference photos/documents are uploaded straight after the action is created.
+      let failed = 0;
+      for (const file of attachments) {
+        try {
+          await actionsService.addAttachment(res.data._id, { file });
+        } catch {
+          failed += 1;
+        }
+      }
+      if (failed) toast.error(`${res.data.reference} created, but ${failed} attachment${failed === 1 ? '' : 's'} failed`, 'Open the action and add them again.');
+      else toast.success(res.message ?? 'Action created', attachments.length ? `${attachments.length} attachment${attachments.length === 1 ? '' : 's'} added.` : undefined);
       onCreated?.(res.data);
       onClose();
     } catch (err) {
@@ -220,6 +232,14 @@ export function ActionFormModal({
             options={[{ value: '', label: 'None' }, ...certificates.map((c) => ({ value: c._id, label: c.label }))]}
           />
         )}
+        <FileDropzone
+          label="Photos or documents (optional)"
+          multiple
+          accept=".pdf,.jpg,.jpeg,.png,.heic"
+          files={attachments}
+          onFilesChange={setAttachments}
+          hint="e.g. inspection photos or a report extract, for whoever does the work · PDF, JPG, PNG or HEIC · up to 20 MB each"
+        />
         <div className="rounded-xl border border-line bg-canvas p-3.5">
           <Checkbox
             label="Require evidence to close this action"

@@ -19,14 +19,16 @@ export function writeAudit(
   entityId: string | undefined,
   summary: string,
   diff?: { before?: Record<string, unknown>; after?: Record<string, unknown> },
+  /** An external contact acting through a secure action link instead of the signed-in user. */
+  external?: { id: string; name: string },
 ) {
   const actor = mockStore.actor();
   db.auditEvents.unshift({
     _id: newId('aud'),
-    orgId: actor.orgId,
-    actorId: actor._id,
-    actorName: actor.name,
-    actorRole: actor.role,
+    orgId: external ? db.organisation._id : actor.orgId,
+    actorId: external?.id ?? actor._id,
+    actorName: external?.name ?? actor.name,
+    actorRole: external ? 'external' : actor.role,
     action,
     entityType,
     entityId,
@@ -128,7 +130,7 @@ export function buildReportSnapshot(db: MockDb, propertyId: string): ReportSnaps
       evidenceRefs: evs,
       completionMethod: a.completion?.method,
       completionNote: a.completion?.note,
-      completedByName: a.completion ? userById.get(a.completion.completedBy)?.name : undefined,
+      completedByName: a.completion ? a.completion.externalContact ?? userById.get(a.completion.completedBy)?.name : undefined,
       closureSummary: a.closure?.summary,
       closedAt: a.closure?.verifiedAt,
     };

@@ -12,6 +12,8 @@ export type { PropertyListQuery, PropertyInput, PropertySort } from './propertie
 export { certificatesService, complianceTypesService } from './certificates.service';
 export type { CertificateListQuery, CertificateSort, CertificateSummary, CertificateUploadInput } from './certificates.service';
 export { actionsService } from './actions.service';
+export { actionLinksService, publicActionService, EXTERNAL_ROLE_LABEL, ACTION_LINK_DAY_OPTIONS, externalAuthorName, actionLinkStatus } from './action-links.service';
+export type { SendActionLinkInput } from './action-links.service';
 export type { ActionListQuery, ActionInput } from './actions.service';
 export { dashboardService } from './dashboard.service';
 export { reportsService, sharingService, publicShareService, SHARE_DEFAULT_DAYS, SHARE_MAX_DAYS } from './reports.service';

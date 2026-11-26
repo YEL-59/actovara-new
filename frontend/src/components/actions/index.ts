@@ -4,3 +4,4 @@ export * from './ActionBoard';
 export * from './ActionsSkeleton';
 export * from './ActionLifecycleModals';
 export * from './ActionQuickActions';
+export * from './ExternalActionPanels';

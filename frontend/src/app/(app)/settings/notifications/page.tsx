@@ -40,6 +40,7 @@ const TYPE_LABEL: Record<NotificationLog['type'], string> = {
   cert_expiry: 'Certificate expiry',
   action_overdue: 'Action overdue',
   action_assigned: 'Action assigned',
+  action_external: 'Action sent to external contact',
   invite: 'Team invite',
   password_reset: 'Password reset',
 };
@@ -374,6 +375,7 @@ export default function NotificationsSettingsPage() {
                     { value: 'cert_expiry', label: 'Certificate expiry' },
                     { value: 'action_overdue', label: 'Action overdue' },
                     { value: 'action_assigned', label: 'Action assigned' },
+                    { value: 'action_external', label: 'Action sent to external contact' },
                     { value: 'invite', label: 'Team invite' },
                   ]}
                 />
